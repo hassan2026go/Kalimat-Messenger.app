@@ -1,5 +1,3 @@
-// Kalimat Messenger — Firebase Configuration
-
 export const firebaseConfig = {
   apiKey: "AIzaSyD747-0p6PC3k2U-cxwphDyRnKjYcYicOg",
   authDomain: "kalimat-2014.firebaseapp.com",
