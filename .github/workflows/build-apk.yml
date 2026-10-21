@@ -77,10 +77,8 @@ jobs:
 
           cat > capacitor.config.json <<'EOF'
           {
-            
-            
-            ""appId": "com.kalimat.messenger",
-"appName": "kalimat"
+            "appId": "com.kalimat.messenger",
+            "appName": "Kalimat Messenger",
             "webDir": "www",
             "server": {
               "androidScheme": "https"
