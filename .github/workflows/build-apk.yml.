@@ -1,0 +1,77 @@
+name: Build Kalimat Messenger APK
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  build-apk:
+    name: Build Android APK
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Get project files
+        uses: actions/checkout@v4
+
+      - name: Install Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      - name: Install Java
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+
+      - name: Install Android SDK
+        uses: android-actions/setup-android@v3
+
+      - name: Prepare Capacitor project
+        run: |
+          cat > package.json <<'EOF'
+          {
+            "name": "kalimat-messenger",
+            "version": "1.0.0",
+            "private": true,
+            "description": "Kalimat Messenger Android App"
+          }
+          EOF
+
+          npm install @capacitor/core@6 @capacitor/android@6
+          npm install --save-dev @capacitor/cli@6
+
+          mkdir -p www
+
+          cp index.html app.js firebase-config.js manifest.json sw.js www/
+          cp icon-192.png icon-512.png icon-maskable-512.png www/
+
+          cat > capacitor.config.json <<'EOF'
+          {
+            "appId": "com.kalimat.messenger",
+            "appName": "Kalimat Messenger",
+            "webDir": "www",
+            "server": {
+              "androidScheme": "https"
+            }
+          }
+          EOF
+
+          npx cap add android
+          npx cap sync android
+
+      - name: Build APK
+        run: |
+          cd android
+          chmod +x gradlew
+          ./gradlew assembleDebug
+
+      - name: Save APK
+        uses: actions/upload-artifact@v4
+        with:
+          name: Kalimat-Messenger-APK
+          path: android/app/build/outputs/apk/debug/app-debug.apk
+          if-no-files-found: error
+          retention-days: 7
