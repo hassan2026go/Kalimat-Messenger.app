@@ -582,8 +582,25 @@ function paintComposer() {
 function sendTyping() { const c = S.chat; if (!c || S.me.pv?.ty === false || Date.now() - typingT < 2500) return; typingT = Date.now(); updateDoc(doc(db, 'mx_chats', c.id), { ['typing.' + S.uid]: Date.now() }).catch(() => {}); }
 function emojiMenu() { const close = modal('', h('div', { class: 'emojis' }, EMOJI.map(e => h('button', { onclick: () => { const t = $('#minput'); if (t) { t.value += e; t.dispatchEvent(new Event('input')); } close(); } }, e)))); }
 function attachMenu() {
-  const close = modal('إرفاق', h('button', { class: 'btn ghost full', style: { marginBottom: '8px' }, onclick: async () => { close(); const f = await pick('image/*'); if (!f) return; const d = await shrink(f, 1280, .72, 420000); if (!d) return toast('الصورة كبيرة جداً'); sendMsg('image', { data: d }); } }, '📷 صورة'),
-    h('button', { class: 'btn ghost full', onclick: async () => { close(); const f = await pick('*/*'); if (!f) return; if (f.size > 300 * 1024) return toast('الحد الأقصى للملف 300 ك.ب (الخطة المجانية بلا تخزين ملفات)'); sendMsg('file', { data: await readURL(f), name: f.name, size: f.size }); } }, '📎 ملف (حتى 300 ك.ب)'));
+  const close = modal('إرفاق',
+    h('button', { class: 'btn ghost full', style: { marginBottom: '8px' }, onclick: async () => {
+      close(); const f = await pick('image/*'); if (!f) return;
+      if (!f.type.startsWith('image/')) return toast('اختر ملف صورة صالحاً');
+      try {
+        const d = await shrink(f, 1280, .72, 420000);
+        if (!d) return toast('تعذّر ضغط الصورة إلى الحجم المسموح؛ اختر صورة أصغر');
+        sendMsg('image', { data: d });
+      } catch { toast('تعذّرت قراءة الصورة؛ جرّب صورة أخرى'); }
+    } }, '📷 صورة'),
+    h('button', { class: 'btn ghost full', onclick: async () => {
+      close(); const f = await pick('*/*'); if (!f) return;
+      if (!f.size || f.size > 300 * 1024) return toast('اختر ملفاً صالحاً لا يتجاوز 300 ك.ب');
+      try {
+        const data = await readURL(f);
+        if (typeof data !== 'string' || !data.startsWith('data:')) return toast('تعذّرت قراءة الملف');
+        sendMsg('file', { data, name: f.name || 'file', size: f.size, mime: f.type || 'application/octet-stream' });
+      } catch { toast('تعذّرت قراءة الملف؛ حاول مجدداً'); }
+    } }, '📎 ملف (حتى 300 ك.ب)'));
 }
 async function recStart() {
   let st; try { st = await navigator.mediaDevices.getUserMedia({ audio: true }); } catch { return toast('لا توجد صلاحية الميكروفون'); }
