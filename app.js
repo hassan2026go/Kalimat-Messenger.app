@@ -83,7 +83,7 @@ const S = {
   chats: new Map(), users: new Map(), watched: new Set(), calls: [], st: new Map(), stUnsubs: [], stKey: '',
   chat: null, msgs: [], msgCache: new Map(), pv: new Map(), lastUnread: new Map(), booted: false,
   reply: null, q: '', unsubs: [],
-  cfg: Object.assign({ theme: 'indigo', mode: 'dark', wp: 'dots', sound: true, heads: true, notif: false, callsSeen: 0, pin: null }, (() => { try { return JSON.parse(localStorage.getItem('kmx-cfg') || '{}'); } catch { return {}; } })()),
+  cfg: Object.assign({ theme: 'indigo', mode: 'dark', wp: 'dots', sound: true, heads: true, notif: false, callsSeen: 0, pin: null, pinnedChats: [], mutedChats: [] }, (() => { try { return JSON.parse(localStorage.getItem('kmx-cfg') || '{}'); } catch { return {}; } })()),
 };
 const saveCfg = () => { try { localStorage.setItem('kmx-cfg', JSON.stringify(S.cfg)); } catch {} applyCfg(); };
 function applyCfg() { const r = document.documentElement; r.dataset.theme = S.cfg.theme; r.dataset.mode = S.cfg.mode; $('meta[name=theme-color]').content = S.cfg.mode === 'light' ? '#f2f5fc' : '#0a1020'; }
@@ -188,6 +188,7 @@ function beep(freqs = [880, 1175], dur = .12) {
   try { actx = actx || new (window.AudioContext || window.webkitAudioContext)(); freqs.forEach((f, i) => { const o = actx.createOscillator(), g = actx.createGain(); o.frequency.value = f; o.connect(g); g.connect(actx.destination); const t = actx.currentTime + i * dur; g.gain.setValueAtTime(.0001, t); g.gain.exponentialRampToValueAtTime(.18, t + .02); g.gain.exponentialRampToValueAtTime(.0001, t + dur); o.start(t); o.stop(t + dur + .02); }); } catch {}
 }
 async function notify(cid, c) {
+  if ((S.cfg.mutedChats || []).includes(cid)) return;
   const name = chatName(c);
   beep();
   if (S.chat?.id === cid) return;
@@ -352,7 +353,11 @@ function vChats() {
 function paintChatList() { const l = $('#clist'); if (l) l.replaceChildren(...chatListItems()); }
 function chatListItems() {
   const q = S.q.trim().toLowerCase();
-  const arr = [...S.chats.values()].filter(c => c.last || c.type === 'group').filter(c => !q || chatName(c).toLowerCase().includes(q)).sort((a, b) => (b.last?.ts || b.created || 0) - (a.last?.ts || a.created || 0));
+  const arr = [...S.chats.values()].filter(c => c.last || c.type === 'group').filter(c => !q || chatName(c).toLowerCase().includes(q)).sort((a, b) => {
+    const pins = S.cfg.pinnedChats || [];
+    const ap = pins.includes(a.id) ? 1 : 0, bp = pins.includes(b.id) ? 1 : 0;
+    return bp - ap || (b.last?.ts || b.created || 0) - (a.last?.ts || a.created || 0);
+  });
   if (!arr.length) return [h('div', { class: 'empty' }, q ? 'لا نتائج' : 'لا توجد محادثات بعد.\nاضغط + وابحث عن صديق بالاسم أو برمزه KLM-…')];
   return arr.map(c => {
     const peer = c.type === 'direct' ? U(peerOf(c)) : { name: c.name }, n = c.unread?.[S.uid] || 0;
@@ -393,7 +398,16 @@ async function chatInfo() {
   } else {
     body.push(h('div', { class: 'notice warn' }, ico('lock', 18), 'المجموعات مشفّرة أثناء النقل فقط (غير طرف لطرف).'), h('h3', {}, 'الأعضاء'), ...c.members.map(m => h('div', { class: 'row', style: { padding: '8px 0' } }, avatar(U(m), 36), h('div', { class: 'mid' }, U(m).name))));
   }
-  body.push(h('h3', {}, 'الرسائل ذاتية الاختفاء'), h('div', { class: 'sw-themes' }, TTLS.map(([t, v]) => h('button', { class: (c.ttl || 0) === v ? 'on' : '', onclick: async () => { await updateDoc(doc(db, 'mx_chats', c.id), { ttl: v }); toast(v ? 'تُحذف الرسائل الجديدة بعد ' + t : 'أُوقف الحذف التلقائي'); close(); } }, t))),
+  const pinned = (S.cfg.pinnedChats || []).includes(c.id);
+  const muted = (S.cfg.mutedChats || []).includes(c.id);
+  body.push(
+    h('div', { class: 'set' },
+      h('div', { class: 't' }, h('b', {}, pinned ? 'إلغاء تثبيت المحادثة' : 'تثبيت المحادثة'), h('small', {}, 'تظهر المحادثات المثبّتة أعلى القائمة على هذا الجهاز')),
+      h('button', { class: 'btn ghost', onclick: () => { S.cfg.pinnedChats = pinned ? (S.cfg.pinnedChats || []).filter(id => id !== c.id) : [...(S.cfg.pinnedChats || []), c.id]; saveCfg(); close(); render(true); toast(pinned ? 'أُلغي تثبيت المحادثة' : 'تم تثبيت المحادثة'); } }, pinned ? 'إلغاء التثبيت' : 'تثبيت')),
+    h('div', { class: 'set' },
+      h('div', { class: 't' }, h('b', {}, muted ? 'إلغاء كتم الإشعارات' : 'كتم إشعارات المحادثة'), h('small', {}, 'يُطبّق على إشعارات هذا الجهاز فقط')),
+      h('button', { class: 'btn ghost', onclick: () => { S.cfg.mutedChats = muted ? (S.cfg.mutedChats || []).filter(id => id !== c.id) : [...(S.cfg.mutedChats || []), c.id]; saveCfg(); close(); toast(muted ? 'أُلغِي كتم الإشعارات' : 'تم كتم إشعارات المحادثة'); } }, muted ? 'إلغاء الكتم' : 'كتم')),
+    h('h3', {}, 'الرسائل ذاتية الاختفاء'), h('div', { class: 'sw-themes' }, TTLS.map(([t, v]) => h('button', { class: (c.ttl || 0) === v ? 'on' : '', onclick: async () => { await updateDoc(doc(db, 'mx_chats', c.id), { ttl: v }); toast(v ? 'تُحذف الرسائل الجديدة بعد ' + t : 'أُوقف الحذف التلقائي'); close(); } }, t))),
     h('small', { style: { color: 'var(--mut)', display: 'block', lineHeight: 1.6 } }, 'تختفي الرسائل من الشاشة عند انتهاء المدة، ويحذفها جهاز مرسلها عند فتحه للتطبيق.'));
   const close = modal(chatName(c), ...body);
 }
