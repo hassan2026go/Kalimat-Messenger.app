@@ -117,12 +117,15 @@ jobs:
           EOF
 
           npm install --no-audit --no-fund @capacitor/core@6 @capacitor/android@6
-          npm install --no-audit --no-fund --save-dev @capacitor/cli@6
+          npm install --no-audit --no-fund --save-dev @capacitor/cli@6 @capacitor/assets
 
-          mkdir -p www
+          mkdir -p www assets
 
           cp index.html app.js firebase-config.js manifest.json sw.js www/
           cp icon-192.png icon-512.png icon-maskable-512.png www/
+          # Use the existing Kalimat feather artwork as the native Android launcher icon source.
+          cp icon-512.png assets/icon.png
+          npx capacitor-assets generate --android --assetPath assets
 
           cat > capacitor.config.json <<'EOF'
           {
