@@ -36,6 +36,8 @@ jobs:
           test -s icon-192.png
           test -s icon-512.png
           test -s icon-maskable-512.png
+          test -s icon.svg
+          test -s scripts/generate-icons.mjs
           node -e "JSON.parse(require('fs').readFileSync('manifest.json', 'utf8'))"
           node --input-type=module --check < app.js
           node --check sw.js
@@ -105,6 +107,14 @@ jobs:
             "platforms;android-35" \
             "build-tools;35.0.0"
 
+      - name: Generate clean launcher artwork
+        run: |
+          npm install --no-save --no-audit --no-fund sharp
+          node scripts/generate-icons.mjs
+          cp generated-icons/icon-192.png icon-192.png
+          cp generated-icons/icon-512.png icon-512.png
+          cp generated-icons/icon-maskable-512.png icon-maskable-512.png
+
       - name: Prepare Capacitor project
         run: |
           cat > package.json <<'EOF'
@@ -124,7 +134,7 @@ jobs:
           cp index.html app.js firebase-config.js manifest.json sw.js www/
           cp icon-192.png icon-512.png icon-maskable-512.png www/
           # Use the existing Kalimat feather artwork as the native Android launcher icon source.
-          cp icon-512.png assets/icon.png
+          cp generated-icons/icon.png assets/icon.png
           npx capacitor-assets generate --android --assetPath assets
 
           cat > capacitor.config.json <<'EOF'
