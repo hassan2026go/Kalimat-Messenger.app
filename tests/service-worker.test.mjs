@@ -130,3 +130,29 @@ test('offline missing static assets fail instead of returning the HTML shell', a
   assert.equal(response.type, 'error');
 });
 
+test('successful Firebase SDK responses may be cached', async () => {
+  const env = boot();
+  let responsePromise;
+  env.listeners.fetch({
+    request: new Request('https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js'),
+    respondWith: promise => { responsePromise = promise; }
+  });
+  const response = await responsePromise;
+  await new Promise(resolve => setImmediate(resolve));
+  assert.equal(response.status, 200);
+  assert.equal(env.cacheCalls.some(call => call[0] === 'open'), true);
+  assert.equal(env.cacheCalls.some(call => call.length === 2 && call[0] instanceof Request), true);
+});
+
+test('failed Firebase SDK responses are never cached', async () => {
+  const env = boot({ fetch: async () => new Response('not found', { status: 404 }) });
+  let responsePromise;
+  env.listeners.fetch({
+    request: new Request('https://www.gstatic.com/firebasejs/10.12.2/missing-sdk.js'),
+    respondWith: promise => { responsePromise = promise; }
+  });
+  const response = await responsePromise;
+  await new Promise(resolve => setImmediate(resolve));
+  assert.equal(response.status, 404);
+  assert.equal(env.cacheCalls.some(call => call[0] === 'open'), false);
+});
