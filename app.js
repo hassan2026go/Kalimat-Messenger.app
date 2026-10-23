@@ -196,7 +196,9 @@ async function notify(cid, c) {
     toast('💬 رسالة جديدة من ' + name);
     return;
   }
-  if (!('Notification' in window) || Notification.permission !== 'granted') return;
+  // Respect the user's in-app setting as well as the browser permission.
+  // Turning notifications off must stop banners even if permission remains granted.
+  if (!S.cfg.notif || !('Notification' in window) || Notification.permission !== 'granted') return;
   const options = { body: 'لديك رسالة جديدة', icon: './icon-192.png', badge: './icon-192.png', tag: 'kalimat-' + cid, renotify: false, data: { url: './' } };
   try {
     // Prefer the service worker notification API where supported (including installed web apps).
