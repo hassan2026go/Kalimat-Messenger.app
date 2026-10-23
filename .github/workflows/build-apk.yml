@@ -136,8 +136,6 @@ jobs:
           cp icon.svg www/
           # Use the existing Kalimat feather artwork as the native Android launcher icon source.
           cp generated-icons/icon.png assets/icon.png
-          npx capacitor-assets generate --android --assetPath assets
-
           cat > capacitor.config.json <<'EOF'
           {
             "appId": "com.kalimat.messenger",
@@ -150,6 +148,7 @@ jobs:
           EOF
 
           npx cap add android
+          npx capacitor-assets generate --android --assetPath assets
           npx cap sync android
 
       - name: Build APK
