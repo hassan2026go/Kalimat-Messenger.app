@@ -1,0 +1,22 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" role="img" aria-label="Kalimat feather and speech bubble">
+<defs>
+ <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1"><stop stop-color="#07142f"/><stop offset=".55" stop-color="#071d52"/><stop offset="1" stop-color="#030817"/></linearGradient>
+ <linearGradient id="rim" x1="0" y1="0" x2="1" y2="1"><stop stop-color="#8ffcff"/><stop offset=".42" stop-color="#168bff"/><stop offset=".72" stop-color="#254bff"/><stop offset="1" stop-color="#39eaff"/></linearGradient>
+ <linearGradient id="feather" x1=".15" y1=".9" x2=".8" y2=".1"><stop stop-color="#147cff"/><stop offset=".42" stop-color="#21d8ff"/><stop offset=".72" stop-color="#8bffff"/><stop offset="1" stop-color="#20aaff"/></linearGradient>
+ <filter id="glow" x="-40%" y="-40%" width="180%" height="180%"><feGaussianBlur stdDeviation="5" result="b"/><feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge></filter>
+</defs>
+<rect x="10" y="10" width="492" height="492" rx="92" fill="url(#bg)" stroke="url(#rim)" stroke-width="9"/>
+<rect x="22" y="22" width="468" height="468" rx="80" fill="none" stroke="#2e83ff" stroke-opacity=".5" stroke-width="2"/>
+<g fill="none" stroke-linecap="round" stroke-linejoin="round" filter="url(#glow)">
+ <path d="M106 367 Q135 286 169 222 Q220 126 330 91 Q369 79 403 57 Q399 117 359 167 Q324 210 275 230 Q322 232 354 212 Q329 257 286 274 Q244 291 198 289 Q231 310 269 307 Q220 349 163 353 L125 390 Z" stroke="#0c6bff" stroke-width="19"/>
+ <path d="M106 367 Q135 286 169 222 Q220 126 330 91 Q369 79 403 57 Q399 117 359 167 Q324 210 275 230 Q322 232 354 212 Q329 257 286 274 Q244 291 198 289 Q231 310 269 307 Q220 349 163 353 L125 390 Z" stroke="url(#feather)" stroke-width="8"/>
+ <path d="M117 370 Q189 254 244 185 Q304 113 395 70 M171 249 Q186 198 224 164 M204 300 Q239 279 270 253 M154 344 Q194 334 225 313" stroke="#c4ffff" stroke-width="3"/>
+ <path d="M124 383 L92 423 L105 371 Z" fill="#07132f" stroke="url(#rim)" stroke-width="7"/>
+ <path d="M101 414 L119 383" stroke="#e7ffff" stroke-width="3"/>
+ <path d="M278 174 H363 Q389 174 389 201 V329 Q389 355 363 355 H324 L324 392 L285 355 H187 Q164 355 160 336" stroke="#075dff" stroke-width="21"/>
+ <path d="M278 174 H363 Q389 174 389 201 V329 Q389 355 363 355 H324 L324 392 L285 355 H187 Q164 355 160 336" stroke="url(#rim)" stroke-width="8"/>
+ <path d="M133 438 Q190 453 253 427 Q292 411 321 420" stroke="#158cff" stroke-width="8"/>
+ <path d="M133 438 Q190 453 253 427 Q292 411 321 420" stroke="#66f7ff" stroke-width="3"/>
+</g>
+<path d="M56 54 Q140 20 231 31" stroke="#d9ffff" stroke-opacity=".38" stroke-width="4" fill="none" stroke-linecap="round"/>
+</svg>
