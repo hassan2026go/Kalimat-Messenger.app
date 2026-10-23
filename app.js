@@ -1,4 +1,4 @@
-/* كلمات ماسنجر — تطبيق مراسلة حقيقي: Firebase (Auth + Firestore) + تشفير طرف لطرف للمحادثات الفردية + مكالمات WebRTC */
+/* كلمات — تطبيق مراسلة حقيقي: Firebase (Auth + Firestore) + تشفير طرف لطرف للمحادثات الفردية + مكالمات WebRTC */
 import { initializeApp } from 'https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js';
 import { getAuth, onAuthStateChanged, createUserWithEmailAndPassword, signInWithEmailAndPassword, signOut, sendEmailVerification, sendPasswordResetEmail, updateProfile, RecaptchaVerifier, signInWithPhoneNumber } from 'https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js';
 import { initializeFirestore, persistentLocalCache, persistentSingleTabManager, memoryLocalCache, doc, getDoc, getDocs, setDoc, updateDoc, deleteDoc, addDoc, collection, query, where, orderBy, limit, onSnapshot, serverTimestamp, increment, arrayUnion, deleteField } from 'https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js';
@@ -314,7 +314,7 @@ function authView(mode = 'login', msg = '', method = 'email', phoneStep = 'numbe
       ? [mode === 'signup' ? name : null, h('div', { style: { display: 'flex', gap: '8px', width: '100%' } }, country, phone), h('small', { class: 'sub' }, 'أدخل رقمك دون الصفر الأول، واختر مفتاح الدولة. ستصلك رسالة SMS للتحقق.'), captcha]
       : [mode === 'signup' ? name : null, h('p', { class: 'sub', dir: 'ltr' }, sentPhone), otp, h('button', { class: 'link', onclick: () => authView(mode, '', 'phone', 'number') }, 'تغيير الرقم أو إعادة طلب الرمز')];
   $('#main').replaceChildren(h('div', { class: 'auth' },
-    h('img', { src: 'icon-512.png', alt: 'كلمات' }), h('h1', {}, 'كلمات ماسنجر'),
+    h('img', { src: 'icon-512.png', alt: 'كلمات' }), h('h1', {}, 'Kalimat'),
     h('p', {}, method === 'phone' ? (phoneStep === 'number' ? 'استخدم رقم هاتفك لتسجيل الدخول أو إنشاء حساب' : 'أدخل رمز التحقق الذي وصل برسالة SMS') : (mode === 'login' ? 'سجّل دخولك لمتابعة محادثاتك' : 'أنشئ حسابك — سنرسل رابط تفعيل إلى بريدك')),
     methodButtons, ...fields, err, go,
     method === 'email' && mode === 'login' ? h('button', { class: 'link', onclick: async () => { if (!email.value.trim()) { err.textContent = 'اكتب بريدك أولاً'; return; } try { await sendPasswordResetEmail(auth, email.value.trim()); err.style.color = 'var(--ok)'; err.textContent = 'أرسلنا رابط استعادة كلمة المرور إلى بريدك'; } catch (e) { showError(e); } } }, 'نسيت كلمة المرور؟') : null,
@@ -569,7 +569,7 @@ async function sendMsg(kind, payload) {
     const last = { from: S.uid, ts: Date.now(), kind }; if (kind === 'text') last.body = await sealFor(c, JSON.stringify({ text: payload.text.slice(0, 80) }));
     const upd = { last, ['typing.' + S.uid]: 0 }; c.members.filter(x => x !== S.uid).forEach(o => upd['unread.' + o] = increment(1));
     await addDoc(collection(db, 'mx_chats', c.id, 'msgs'), msg); await updateDoc(doc(db, 'mx_chats', c.id), upd); beep([660], .08);
-  } catch (e) { toast(e.message === 'no-key' ? 'هذا المستخدم لم يفتح كلمات ماسنجر بعد، لا يمكن تشفير الرسالة له' : 'تعذّر الإرسال: ' + (e.code || e.message)); }
+  } catch (e) { toast(e.message === 'no-key' ? 'هذا المستخدم لم يفتح كلمات بعد، لا يمكن تشفير الرسالة له' : 'تعذّر الإرسال: ' + (e.code || e.message)); }
 }
 
 /* ───────── الحالات ───────── */
@@ -737,7 +737,7 @@ function vSettings() {
   const pv = (k, t, d) => sw(t, d, u.pv?.[k] !== false, v => updateDoc(doc(db, 'mx_users', S.uid), { ['pv.' + k]: v }));
   const themes = [['indigo', 'نيلي سيراني', '#2563ff'], ['ocean', 'محيط سماوي', '#0ea5e9'], ['emerald', 'ماتريكس زمردي', '#10b981'], ['violet', 'بنفسجي ملكي', '#a855f7'], ['sunset', 'غروب', '#f97316']];
   const reRender = () => { saveCfg(); render(true); };
-  return h('div', {}, hdr('الإعدادات', 'كلمات ماسنجر v1.0'),
+  return h('div', {}, hdr('الإعدادات', 'كلمات v1.0'),
     h('div', { class: 'card' }, h('h3', {}, 'الحساب'),
       h('div', { class: 'set' }, h('div', { class: 't' }, h('b', {}, 'البريد الإلكتروني'), h('small', { dir: 'ltr', style: { textAlign: 'start' } }, user?.email)), h('span', { class: 'pill', style: { background: 'var(--ok)' } }, 'موثّق ✓')),
       h('div', { class: 'set', onclick: () => navigator.clipboard?.writeText(u.code).then(() => toast('تم نسخ الرمز')) }, h('div', { class: 't' }, h('b', {}, 'رمزك للأصدقاء'), h('small', {}, 'شاركه ليجدك أصدقاؤك')), h('b', { dir: 'ltr', style: { color: 'var(--acc)' } }, u.code), ico('copy', 18)),
@@ -787,7 +787,7 @@ function renderNav() {
   const un = unreadTotal(), missed = S.calls.filter(c => c.to === S.uid && c.state === 'missed' && c.ts > S.cfg.callsSeen).length, st = unseenSt();
   $('#nav').replaceChildren(...TABS.map(([k, t, i]) => h('button', { class: S.tab === k ? 'on' : '', onclick: () => { S.tab = k; render(true); } }, ico(i, 24), t, k === 'chats' && un ? h('span', { class: 'badge blue' }, un) : null, k === 'calls' && missed ? h('span', { class: 'badge' }, missed) : null, k === 'status' && st ? h('span', { class: 'dot' }) : null)));
   const hb = $('#heads'); const show = S.cfg.heads && un > 0 && S.tab !== 'chats' && !S.chat; hb.style.display = show ? 'flex' : 'none'; const bd = hb.querySelector('.badge'); if (bd) { bd.hidden = !un; bd.textContent = un; }
-  document.title = (un ? `(${un}) ` : '') + 'كلمات ماسنجر';
+  document.title = (un ? `(${un}) ` : '') + 'كلمات';
 }
 function renderNow(force) {
   if (S.view !== 'app') return; renderNav();
