@@ -26,7 +26,7 @@ self.addEventListener('push', event => {
     icon: './icon-192.png',
     badge: './icon-192.png',
     tag: data.tag || 'kalimat-message',
-    data: { url: data.url || './' },
+    data: { url: (() => { try { const u = new URL(data.url || './', self.location.origin); return u.origin === self.location.origin ? u.href : './'; } catch { return './'; } })() },
     renotify: false
   };
   event.waitUntil(self.registration.showNotification(title, options));
@@ -34,7 +34,11 @@ self.addEventListener('push', event => {
 
 self.addEventListener('notificationclick', event => {
   event.notification.close();
-  const target = new URL(event.notification.data?.url || './', self.location.origin).href;
+  let target = self.location.origin + '/';
+  try {
+    const requested = new URL(event.notification.data?.url || './', self.location.origin);
+    if (requested.origin === self.location.origin) target = requested.href;
+  } catch {}
   event.waitUntil((async () => {
     const windows = await self.clients.matchAll({ type: 'window', includeUncontrolled: true });
     for (const client of windows) {
