@@ -221,7 +221,7 @@ function avatar(u, size = 48, dot = false, extra = '') {
   return h('div', { class: 'av ' + extra, style: st }, u.av ? h('img', { src: u.av, alt: '' }) : (u.name || '؟').trim().charAt(0), dot ? h('i') : null);
 }
 const sw = (title, desc, on, fn) => { const s = h('span', { class: 'sw' + (on ? ' on' : '') }); const r = h('div', { class: 'set', onclick: () => { on = !on; s.classList.toggle('on', on); fn(on); } }, h('div', { class: 't' }, h('b', {}, title), desc ? h('small', {}, desc) : null), s); return r; };
-const hdr = (title, sub, ...btns) => h('div', { class: 'hd' }, h('div', { class: 'k-brand' }, h('img', { src: 'icon-192.png', alt: '', width: 27, height: 27 }), h('b', {}, 'Kalimat'), h('small', {}, 'كلمات')), h('div', { style: { flex: 1 } }, h('h1', {}, title), sub ? h('div', { class: 'sub' }, sub) : null), ...btns);
+const hdr = (title, sub, ...btns) => h('div', { class: 'hd' }, h('div', { class: 'k-brand' }, h('img', { src: 'icon.svg', alt: '', width: 27, height: 27 }), h('b', {}, 'Kalimat'), h('small', {}, 'كلمات')), h('div', { style: { flex: 1 } }, h('h1', {}, title), sub ? h('div', { class: 'sub' }, sub) : null), ...btns);
 function ticks(m, c) {
   if (m.from !== S.uid) return null;
   if (m.pending) return h('span', {}, '🕓');
@@ -834,7 +834,7 @@ function vSettings() {
       deferredInstall ? h('div', { class: 'set' }, h('button', { class: 'btn full', onclick: async () => { deferredInstall.prompt(); deferredInstall = null; render(true); } }, ico('down', 18), 'تثبيت التطبيق على الشاشة الرئيسية')) : null,
       h('div', { class: 'set' }, h('div', { class: 't' }, h('b', {}, 'مسح الذاكرة المؤقتة'), h('small', {}, 'لا يحذف حسابك ولا مفاتيح التشفير')), h('button', { class: 'btn ghost', onclick: async () => { S.msgCache.clear(); S.pv.clear(); if (window.caches) for (const k of await caches.keys()) await caches.delete(k); toast('تم المسح'); } }, 'مسح')),
       h('div', { class: 'notice warn' }, 'تنبيه: لا تمسح بيانات الموقع من إعدادات المتصفح، فهذا يحذف مفاتيح التشفير وتصبح رسائلك القديمة غير مقروءة.')),
-    h('div', { class: 'k-brand-footer' }, h('img', { src: 'icon-192.png', alt: 'شعار كلمات', width: 38, height: 38 }), h('div', {}, h('b', {}, 'Kalimat'), h('span', {}, 'كلمات · تواصل بلا حدود'))));
+    h('div', { class: 'k-brand-footer' }, h('img', { src: 'icon.svg', alt: 'شعار كلمات', width: 38, height: 38 }), h('div', {}, h('b', {}, 'Kalimat'), h('span', {}, 'كلمات · تواصل بلا حدود'))));
 }
 const sha = async s => b64(new Uint8Array(await crypto.subtle.digest('SHA-256', new TextEncoder().encode('kmx:' + s))));
 let deferredInstall; window.addEventListener('beforeinstallprompt', e => { e.preventDefault(); deferredInstall = e; });
