@@ -79,7 +79,7 @@ function toast(t, ms = 3000) { const el = h('div', {}, t); $('#toast').append(el
 
 /* ───────── الحالة ───────── */
 const S = {
-  uid: null, me: null, keys: null, tab: 'chats', view: 'boot',
+  uid: null, me: null, keys: null, tab: 'chats', view: 'boot', showArchived: false,
   chats: new Map(), users: new Map(), watched: new Set(), calls: [], st: new Map(), stUnsubs: [], stKey: '',
   chat: null, msgs: [], msgCache: new Map(), pv: new Map(), lastUnread: new Map(), booted: false,
   reply: null, q: '', unsubs: [],
@@ -347,13 +347,15 @@ function prevText(c) {
 }
 function vChats() {
   const q = h('input', { placeholder: 'بحث في المحادثات', value: S.q, oninput: e => { S.q = e.target.value; paintChatList(); } });
-  return h('div', {}, hdr('محادثات', null, h('button', { class: 'ib acc', onclick: newChatModal, 'aria-label': 'محادثة جديدة' }, ico('plus'))),
+  return h('div', {}, hdr(S.showArchived ? 'المحادثات المؤرشفة' : 'محادثات', null,
+    h('button', { class: 'ib flat', onclick: () => { S.showArchived = !S.showArchived; S.q = ''; render(true); }, 'aria-label': S.showArchived ? 'العودة إلى المحادثات' : 'عرض المؤرشفة', title: S.showArchived ? 'العودة إلى المحادثات' : 'المحادثات المؤرشفة' }, ico('file', 20)),
+    h('button', { class: 'ib acc', onclick: newChatModal, 'aria-label': 'محادثة جديدة' }, ico('plus'))),
     h('div', { class: 'search' }, ico('search', 18), q), h('div', { id: 'clist' }, chatListItems()));
 }
 function paintChatList() { const l = $('#clist'); if (l) l.replaceChildren(...chatListItems()); }
 function chatListItems() {
   const q = S.q.trim().toLowerCase();
-  const arr = [...S.chats.values()].filter(c => c.last || c.type === 'group').filter(c => !q || chatName(c).toLowerCase().includes(q)).sort((a, b) => {
+  const arr = [...S.chats.values()].filter(c => ((S.cfg.archivedChats || []).includes(c.id) === !!S.showArchived) && (c.last || c.type === 'group')).filter(c => !q || chatName(c).toLowerCase().includes(q)).sort((a, b) => {
     const pins = S.cfg.pinnedChats || [];
     const ap = pins.includes(a.id) ? 1 : 0, bp = pins.includes(b.id) ? 1 : 0;
     return bp - ap || (b.last?.ts || b.created || 0) - (a.last?.ts || a.created || 0);
@@ -400,7 +402,11 @@ async function chatInfo() {
   }
   const pinned = (S.cfg.pinnedChats || []).includes(c.id);
   const muted = (S.cfg.mutedChats || []).includes(c.id);
+  const archived = (S.cfg.archivedChats || []).includes(c.id);
   body.push(
+    h('div', { class: 'set' },
+      h('div', { class: 't' }, h('b', {}, archived ? 'إلغاء أرشفة المحادثة' : 'أرشفة المحادثة'), h('small', {}, 'تُخفى من القائمة الرئيسية ويمكن استعادتها من المؤرشفة')),
+      h('button', { class: 'btn ghost', onclick: () => { S.cfg.archivedChats = archived ? (S.cfg.archivedChats || []).filter(id => id !== c.id) : [...(S.cfg.archivedChats || []), c.id]; saveCfg(); close(); render(true); toast(archived ? 'تمت استعادة المحادثة' : 'تمت أرشفة المحادثة'); } }, archived ? 'استعادة' : 'أرشفة')),
     h('div', { class: 'set' },
       h('div', { class: 't' }, h('b', {}, pinned ? 'إلغاء تثبيت المحادثة' : 'تثبيت المحادثة'), h('small', {}, 'تظهر المحادثات المثبّتة أعلى القائمة على هذا الجهاز')),
       h('button', { class: 'btn ghost', onclick: () => { S.cfg.pinnedChats = pinned ? (S.cfg.pinnedChats || []).filter(id => id !== c.id) : [...(S.cfg.pinnedChats || []), c.id]; saveCfg(); close(); render(true); toast(pinned ? 'أُلغي تثبيت المحادثة' : 'تم تثبيت المحادثة'); } }, pinned ? 'إلغاء التثبيت' : 'تثبيت')),
