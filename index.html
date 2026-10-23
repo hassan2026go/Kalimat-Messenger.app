@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover">
 <meta name="theme-color" content="#0a1020">
 <meta name="mobile-web-app-capable" content="yes">
-<title>kalimat</title>
+<title>Kalimat</title>
 <link rel="manifest" href="manifest.json">
 <link rel="icon" href="icon-192.png">
 <link rel="apple-touch-icon" href="icon-192.png">
@@ -162,6 +162,46 @@ nav button.on{color:var(--acc);font-weight:700}
 .pw{position:relative}.pw button{position:absolute;inset-inline-end:10px;top:50%;transform:translateY(-50%);color:var(--mut)}
 .chips{display:flex;gap:8px;flex-wrap:wrap;margin:8px 0}.chips label{display:flex;align-items:center;gap:8px;background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:8px 12px;width:100%}
 .chips input{width:auto}
+
+/* Kalimat visual identity: midnight glass, luminous blue, accessible touch targets */
+:root{color-scheme:dark;--glass:rgba(18,28,54,.76);--glow:rgba(37,99,255,.18)}
+body{background:radial-gradient(ellipse at 12% 0%,rgba(37,99,255,.14),transparent 38%),radial-gradient(ellipse at 92% 70%,rgba(91,61,245,.10),transparent 34%),var(--bg)}
+#app{background:transparent}
+#main{scrollbar-width:thin;scrollbar-color:var(--line) transparent}
+nav{background:color-mix(in srgb,var(--bg2) 88%,transparent);backdrop-filter:blur(22px);-webkit-backdrop-filter:blur(22px);box-shadow:0 -10px 36px rgba(0,0,0,.12)}
+nav button{min-height:48px;transition:color .18s,transform .18s}
+nav button.on{text-shadow:0 0 18px color-mix(in srgb,var(--acc) 55%,transparent)}
+nav button.on .ico{filter:drop-shadow(0 0 7px color-mix(in srgb,var(--acc) 65%,transparent))}
+.hd{padding-bottom:14px}
+.hd h1{letter-spacing:-.45px;background:linear-gradient(110deg,var(--tx) 55%,color-mix(in srgb,var(--acc) 76%,white));-webkit-background-clip:text;background-clip:text;-webkit-text-fill-color:transparent}
+.ib{transition:transform .16s,border-color .16s,box-shadow .16s}
+.ib:active,.btn:active{transform:scale(.96)}
+.ib.acc{box-shadow:0 7px 22px color-mix(in srgb,var(--acc) 25%,transparent)}
+.btn{box-shadow:0 8px 24px color-mix(in srgb,var(--acc) 17%,transparent);transition:transform .16s,filter .16s}
+.btn.ghost{box-shadow:none}
+.row{margin:3px 8px;padding:12px 10px;border-radius:18px;transition:background .18s}
+.row:active{background:color-mix(in srgb,var(--panel) 78%,transparent)}
+.row .av{box-shadow:0 4px 16px rgba(0,0,0,.14)}
+.card{background:linear-gradient(145deg,color-mix(in srgb,var(--panel) 92%,white 2%),color-mix(in srgb,var(--panel) 88%,var(--acc) 4%));box-shadow:0 10px 32px rgba(0,0,0,.08)}
+.search input{background:color-mix(in srgb,var(--panel) 88%,transparent);border-color:color-mix(in srgb,var(--line) 80%,var(--acc) 10%)}
+.chead,.composer{background:color-mix(in srgb,var(--bg2) 88%,transparent);backdrop-filter:blur(18px);-webkit-backdrop-filter:blur(18px)}
+.chead .who b{letter-spacing:.1px}
+.msgs{background-color:transparent}
+.bub{box-shadow:0 3px 12px rgba(0,0,0,.06)}
+.mine .bub{box-shadow:0 5px 18px color-mix(in srgb,var(--acc) 12%,transparent)}
+.auth{width:100%;position:relative;isolation:isolate;padding:28px 24px max(28px,env(safe-area-inset-bottom))}
+.auth:before{content:"";position:absolute;z-index:-1;inset:8% -10px 5%;border-radius:34px;background:linear-gradient(150deg,color-mix(in srgb,var(--panel) 76%,transparent),color-mix(in srgb,var(--bg2) 48%,transparent));border:1px solid color-mix(in srgb,var(--line) 72%,var(--acc) 12%);box-shadow:0 24px 70px rgba(0,0,0,.18);backdrop-filter:blur(20px);-webkit-backdrop-filter:blur(20px)}
+.auth img{width:104px;height:104px;border:1px solid rgba(130,170,255,.32);border-radius:30px;box-shadow:0 0 0 8px rgba(37,99,255,.055),0 0 42px rgba(37,99,255,.26);object-fit:cover}
+.auth h1{font-size:32px;letter-spacing:.3px;margin-top:12px}
+.auth p{max-width:320px;margin-inline:auto}
+.auth input,.auth select{min-height:48px;background:color-mix(in srgb,var(--panel) 90%,transparent)}
+.auth .btn.full{min-height:49px}
+.auth .auth-methods .btn{font-size:14px;padding:11px 8px}
+.auth .link{font-size:14px}
+.notice{backdrop-filter:blur(12px)}
+@media(min-width:600px){.auth{max-width:460px}.row{margin-inline:12px}}
+@media(prefers-reduced-motion:reduce){*,*::before,*::after{animation-duration:.01ms!important;animation-iteration-count:1!important;scroll-behavior:auto!important;transition-duration:.01ms!important}}
+
 </style>
 </head>
 <body>
