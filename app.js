@@ -439,12 +439,37 @@ let unsubMsgs, msgSeq = 0, typingT = 0, typingTimer;
 function openChat(id, opts = {}) {
   const c = S.chats.get(id); if (!c) return; S.chat = c; S.reply = null; S.msgLimit = 60; S.msgs = [];
   const head = h('div', { class: 'chead' }); const msgs = h('div', { class: 'msgs wp-' + S.cfg.wp, id: 'msgs' });
+  applyChatWallpaper(msgs);
   const comp = h('div', { id: 'comp' }); const rb = h('div', { id: 'replybar' });
   const el = h('div', {}, head, msgs, rb, comp);
   S.chatClose = makeLayer(el, '', () => { unsubMsgs && unsubMsgs(); unsubMsgs = null; S.chat = null; clearInterval(typingTimer); render(true); });
   paintHeader(); paintComposer(); subMsgs(); markRead();
   typingTimer = setInterval(paintHeader, 3000);
   if (opts.attach) setTimeout(() => attachMenu(), 300);
+}
+function applyChatWallpaper(box) {
+  if (!box) return;
+  box.classList.remove('wp-dots', 'wp-plain', 'wp-grad');
+  box.style.backgroundSize = 'cover';
+  box.style.backgroundPosition = 'center';
+  if (S.cfg.wpImage) {
+    box.style.backgroundImage = 'linear-gradient(rgba(5,10,25,.56),rgba(5,10,25,.64)), url("' + S.cfg.wpImage + '")';
+    box.style.backgroundRepeat = 'no-repeat';
+    box.style.backgroundAttachment = 'scroll';
+    return;
+  }
+  box.style.backgroundRepeat = 'repeat';
+  box.style.backgroundAttachment = 'scroll';
+  box.style.backgroundSize = S.cfg.wp === 'dots' ? '22px 22px' : 'cover';
+  const presets = {
+    plain: 'var(--bg)',
+    grad: 'linear-gradient(180deg,var(--bg),var(--bg2) 60%,color-mix(in srgb,var(--acc) 14%,var(--bg)))',
+    aurora: 'linear-gradient(145deg,#071a2e 0%,#164e63 45%,#312e81 100%)',
+    blue: 'linear-gradient(145deg,#020617 0%,#1d4ed8 48%,#0f172a 100%)',
+    rose: 'linear-gradient(145deg,#111827 0%,#581c87 48%,#1e1b4b 100%)',
+    dots: 'radial-gradient(var(--line) 1.4px,transparent 1.5px)'
+  };
+  box.style.backgroundImage = presets[S.cfg.wp] || presets.dots;
 }
 function paintHeader() {
   const head = $('.chead'); if (!head || !S.chat) return; const c = S.chat, direct = c.type === 'direct', p = direct ? U(peerOf(c)) : { name: c.name };
@@ -755,7 +780,29 @@ function vSettings() {
     h('div', { class: 'card' }, h('h3', {}, 'المظهر'),
       sw('الوضع الداكن', null, S.cfg.mode === 'dark', v => { S.cfg.mode = v ? 'dark' : 'light'; reRender(); }),
       h('div', { class: 'sw-themes' }, themes.map(([k, t, c]) => h('button', { class: S.cfg.theme === k ? 'on' : '', onclick: () => { S.cfg.theme = k; reRender(); } }, h('b', { style: { background: c } }), t))),
-      h('div', { class: 'set', style: { flexDirection: 'column', alignItems: 'stretch' } }, h('b', {}, 'خلفية المحادثة'), h('div', { class: 'sw-themes' }, [['dots', 'نقاط'], ['plain', 'سادة'], ['grad', 'تدرّج']].map(([k, t]) => h('button', { class: S.cfg.wp === k ? 'on' : '', onclick: () => { S.cfg.wp = k; reRender(); } }, t))))),
+      h('div', { class: 'set', style: { flexDirection: 'column', alignItems: 'stretch' } },
+        h('b', {}, 'خلفية المحادثة'),
+        h('small', { style: { color: 'var(--mut)', lineHeight: 1.6 } }, 'اختر خلفية جاهزة أو صورة من معرض هاتفك. تُحفظ الخلفية على هذا الجهاز فقط.'),
+        h('div', { class: 'sw-themes' }, [
+          ['dots', 'نقاط', 'radial-gradient(#52658b 1.4px,transparent 1.5px)'],
+          ['plain', 'سادة', 'var(--bg)'],
+          ['grad', 'تدرّج', 'linear-gradient(135deg,#0a1020,#172554)'],
+          ['aurora', 'الشفق', 'linear-gradient(135deg,#071a2e,#164e63,#312e81)'],
+          ['blue', 'أزرق ليلي', 'linear-gradient(135deg,#020617,#1d4ed8,#0f172a)'],
+          ['rose', 'بنفسجي', 'linear-gradient(135deg,#111827,#581c87,#1e1b4b)']
+        ].map(([k, t, bg]) => h('button', { class: S.cfg.wp === k && !S.cfg.wpImage ? 'on' : '', onclick: () => { S.cfg.wp = k; S.cfg.wpImage = null; reRender(); } }, h('b', { style: { width: '18px', height: '18px', borderRadius: '6px', background: bg } }), t))),
+        h('button', { class: 'btn full', onclick: async () => {
+          const f = await pick('image/*'); if (!f) return;
+          if (!f.type.startsWith('image/')) return toast('اختر ملف صورة');
+          try {
+            const d = await shrink(f, 1000, .68, 180000);
+            if (!d) return toast('الصورة كبيرة؛ اختر صورة أصغر');
+            S.cfg.wpImage = d; S.cfg.wp = 'custom'; saveCfg();
+            const box = $('#msgs'); if (box) applyChatWallpaper(box);
+            render(true); toast('تم تطبيق خلفية المحادثة');
+          } catch { toast('تعذّر قراءة الصورة؛ جرّب صورة أخرى'); }
+        } }, ico('image', 18), 'اختيار صورة من الهاتف'),
+        S.cfg.wpImage ? h('button', { class: 'btn ghost full', style: { marginTop: '8px' }, onclick: () => { S.cfg.wpImage = null; S.cfg.wp = 'dots'; reRender(); } }, 'إزالة الصورة والعودة للنقاط') : null)),
     h('div', { class: 'card' }, h('h3', {}, 'التطبيق'),
       deferredInstall ? h('div', { class: 'set' }, h('button', { class: 'btn full', onclick: async () => { deferredInstall.prompt(); deferredInstall = null; render(true); } }, ico('down', 18), 'تثبيت التطبيق على الشاشة الرئيسية')) : null,
       h('div', { class: 'set' }, h('div', { class: 't' }, h('b', {}, 'مسح الذاكرة المؤقتة'), h('small', {}, 'لا يحذف حسابك ولا مفاتيح التشفير')), h('button', { class: 'btn ghost', onclick: async () => { S.msgCache.clear(); S.pv.clear(); if (window.caches) for (const k of await caches.keys()) await caches.delete(k); toast('تم المسح'); } }, 'مسح')),
