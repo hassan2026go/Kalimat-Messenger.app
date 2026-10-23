@@ -550,7 +550,10 @@ function viewStatus(uid) {
 }
 
 /* ───────── المكالمات ───────── */
-const ICE = { iceServers: [{ urls: ['stun:stun.l.google.com:19302', 'stun:stun1.l.google.com:19302'] }] };
+// Optional deployment-provided ICE servers allow TURN credentials to be supplied securely at runtime.
+const ICE = { iceServers: Array.isArray(window.KALIMAT_ICE_SERVERS) && window.KALIMAT_ICE_SERVERS.length
+  ? window.KALIMAT_ICE_SERVERS
+  : [{ urls: ['stun:stun.cloudflare.com:3478', 'stun:stun.l.google.com:19302', 'stun:stun1.l.google.com:19302'] }] };
 let CALL = null, ringT = null, inc = null;
 function onCalls(snap) {
   snap.docChanges().forEach(ch => { const d = { id: ch.doc.id, ...ch.doc.data() }; if (ch.type === 'removed') { S.calls = S.calls.filter(x => x.id !== d.id); return; } const i = S.calls.findIndex(x => x.id === d.id); if (i >= 0) S.calls[i] = d; else S.calls.push(d);
@@ -562,7 +565,30 @@ function newPC(stream, ref, role) {
   const pc = new RTCPeerConnection(ICE); stream.getTracks().forEach(t => pc.addTrack(t, stream)); const pending = [];
   pc.ontrack = e => { const v = $('video.rem'); if (v) { v.srcObject = e.streams[0]; v.play().catch(() => {}); } };
   pc.onicecandidate = e => { if (e.candidate) addDoc(collection(ref, role), e.candidate.toJSON()).catch(() => {}); };
-  pc.onconnectionstatechange = () => { if (pc.connectionState === 'failed' && CALL) { toast('انقطع الاتصال'); endCall(true, 'ended'); } };
+  pc.onconnectionstatechange = () => {
+    const call = CALL;
+    if (!call || call.pc !== pc) return;
+    const st = $('#callst');
+    if (pc.connectionState === 'connected') {
+      clearTimeout(call.disconnectTimer);
+      call.disconnectTimer = null;
+      if (!call.t0) callActive();
+    } else if (pc.connectionState === 'disconnected') {
+      if (st) st.textContent = 'الاتصال ضعيف، نحاول استعادته…';
+      clearTimeout(call.disconnectTimer);
+      call.disconnectTimer = setTimeout(() => {
+        if (CALL === call && pc.connectionState === 'disconnected') {
+          toast('تعذّر استعادة الاتصال');
+          endCall(true, 'ended');
+        }
+      }, 12000);
+    } else if (pc.connectionState === 'failed') {
+      clearTimeout(call.disconnectTimer);
+      toast('فشل اتصال المكالمة؛ تحقق من الشبكة وإعدادات TURN');
+      endCall(true, 'ended');
+    }
+  };
+  pc.onicecandidateerror = e => console.warn('Kalimat ICE candidate error', e.errorCode, e.errorText);
   pc.addCand = c => pc.remoteDescription ? pc.addIceCandidate(c).catch(() => {}) : pending.push(c); pc.flush = () => { pending.splice(0).forEach(c => pc.addIceCandidate(c).catch(() => {})); };
   return pc;
 }
@@ -587,12 +613,11 @@ async function startCall(peer, video) {
   } catch (e) { toast('تعذّر بدء المكالمة'); return endCall(false); }
   CALL.unsubs.push(onSnapshot(ref, async s => { const d = s.data(); if (!d || !CALL) return;
     if (d.answer && !pc.currentRemoteDescription) { await pc.setRemoteDescription(d.answer); pc.flush(); }
-    if (d.state === 'active' && !CALL.t0) callActive();
     if (['ended', 'declined', 'missed'].includes(d.state)) { toast(d.state === 'declined' ? 'رفض المكالمة' : d.state === 'missed' ? 'لم يرد' : 'انتهت المكالمة'); endCall(false); } }));
   CALL.unsubs.push(onSnapshot(collection(ref, 'callee'), s => s.docChanges().forEach(c => c.type === 'added' && pc.addCand(c.doc.data()))));
   CALL.ring = setTimeout(() => { if (CALL && !CALL.t0) endCall(true, 'missed'); }, 45000);
 }
-function callActive() { CALL.t0 = Date.now(); clearTimeout(CALL.ring); const st = $('#callst'); CALL.iv = setInterval(() => { const s = Math.floor((Date.now() - CALL.t0) / 1000); if (st) st.textContent = Math.floor(s / 60) + ':' + String(s % 60).padStart(2, '0'); }, 500); }
+function callActive() { if (!CALL || CALL.t0) return; CALL.t0 = Date.now(); clearTimeout(CALL.ring); const st = $('#callst'); CALL.iv = setInterval(() => { const s = Math.floor((Date.now() - CALL.t0) / 1000); if (st) st.textContent = Math.floor(s / 60) + ':' + String(s % 60).padStart(2, '0'); }, 500); }
 function showIncoming(d) {
   const u = U(d.from); ringT = setInterval(() => beep([700, 900, 700], .18), 1800); beep([700, 900, 700], .18);
   const el = h('div', {}, avatar(u, 110), h('h2', {}, u.name), h('div', {}, d.type === 'video' ? 'مكالمة فيديو واردة…' : 'مكالمة صوتية واردة…'),
@@ -604,12 +629,11 @@ async function acceptCall(d) {
   const ref = doc(db, 'mx_calls', d.id); CALL = { stream, ref, role: 'callee', peer: d.from, video, unsubs: [] }; callUI(d.from, video, 'جارٍ التوصيل…');
   const pc = CALL.pc = newPC(stream, ref, 'callee');
   try { await pc.setRemoteDescription(d.offer); pc.flush(); const ans = await pc.createAnswer(); await pc.setLocalDescription(ans); await updateDoc(ref, { answer: { type: ans.type, sdp: ans.sdp }, state: 'active' }); } catch { toast('تعذّر قبول المكالمة'); return endCall(true, 'ended'); }
-  callActive();
   CALL.unsubs.push(onSnapshot(collection(ref, 'caller'), s => s.docChanges().forEach(c => c.type === 'added' && pc.addCand(c.doc.data()))));
   CALL.unsubs.push(onSnapshot(ref, s => { const x = s.data(); if (x && ['ended', 'missed'].includes(x.state)) { toast('انتهت المكالمة'); endCall(false); } }));
 }
 function endCall(notifyPeer, state = 'ended') {
-  const c = CALL; if (!c) return; CALL = null; clearTimeout(c.ring); clearInterval(c.iv); c.unsubs.forEach(f => f());
+  const c = CALL; if (!c) return; CALL = null; clearTimeout(c.ring); clearTimeout(c.disconnectTimer); clearInterval(c.iv); c.unsubs.forEach(f => f());
   if (notifyPeer) updateDoc(c.ref, { state, dur: c.t0 ? Math.round((Date.now() - c.t0) / 1000) : 0 }).catch(() => {});
   try { c.stream.getTracks().forEach(t => t.stop()); c.pc.close(); } catch {} c.remEl && c.remEl.remove(); c.close && c.close();
 }
