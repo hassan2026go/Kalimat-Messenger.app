@@ -1,6 +1,6 @@
 /* كلمات ماسنجر — تطبيق مراسلة حقيقي: Firebase (Auth + Firestore) + تشفير طرف لطرف للمحادثات الفردية + مكالمات WebRTC */
 import { initializeApp } from 'https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js';
-import { getAuth, onAuthStateChanged, createUserWithEmailAndPassword, signInWithEmailAndPassword, signOut, sendEmailVerification, sendPasswordResetEmail, updateProfile } from 'https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js';
+import { getAuth, onAuthStateChanged, createUserWithEmailAndPassword, signInWithEmailAndPassword, signOut, sendEmailVerification, sendPasswordResetEmail, updateProfile, RecaptchaVerifier, signInWithPhoneNumber } from 'https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js';
 import { initializeFirestore, persistentLocalCache, persistentSingleTabManager, memoryLocalCache, doc, getDoc, getDocs, setDoc, updateDoc, deleteDoc, addDoc, collection, query, where, orderBy, limit, onSnapshot, serverTimestamp, increment, arrayUnion, deleteField } from 'https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js';
 import { firebaseConfig } from './firebase-config.js';
 
@@ -230,15 +230,66 @@ function ticks(m, c) {
 }
 
 /* ───────── التسجيل والدخول ───────── */
-function authView(mode = 'login', msg = '') {
+function authView(mode = 'login', msg = '', method = 'email', phoneStep = 'number', confirmation = null, sentPhone = '') {
   S.view = 'auth'; $('#nav').hidden = true; $('#heads').style.display = 'none';
+  const err = h('div', { class: 'err' }, msg);
+  const go = h('button', { class: 'btn full' }, mode === 'login' ? 'تسجيل الدخول' : 'إنشاء حساب');
   const name = h('input', { placeholder: 'الاسم الظاهر', autocomplete: 'name' });
   const email = h('input', { type: 'email', placeholder: 'البريد الإلكتروني', autocomplete: 'email', dir: 'ltr' });
   const pass = h('input', { type: 'password', placeholder: 'كلمة المرور', autocomplete: mode === 'login' ? 'current-password' : 'new-password', dir: 'ltr' });
   const eye = h('button', { type: 'button', onclick: () => { pass.type = pass.type === 'password' ? 'text' : 'password'; } }, ico('eye', 20));
-  const err = h('div', { class: 'err' }, msg);
-  const go = h('button', { class: 'btn full' }, mode === 'login' ? 'تسجيل الدخول' : 'إنشاء حساب');
-  const run = async () => {
+  const country = h('select', { 'aria-label': 'مفتاح الدولة', dir: 'ltr', style: { width: '110px', flex: '0 0 110px' } },
+    ...[['+961','لبنان +961'],['+963','سوريا +963'],['+962','الأردن +962'],['+966','السعودية +966'],['+971','الإمارات +971'],['+20','مصر +20'],['+964','العراق +964'],['+970','فلسطين +970'],['+90','تركيا +90'],['+1','أمريكا/كندا +1'],['+44','بريطانيا +44'],['+33','فرنسا +33'],['+49','ألمانيا +49']].map(([v,t]) => h('option', { value:v, selected:v==='+961' }, t)));
+  const phone = h('input', { type: 'tel', inputmode: 'tel', placeholder: 'رقم الهاتف دون مفتاح الدولة', autocomplete: 'tel-national', dir: 'ltr' });
+  const otp = h('input', { type: 'text', inputmode: 'numeric', autocomplete: 'one-time-code', placeholder: 'رمز التحقق المكوّن من 6 أرقام', dir: 'ltr', maxlength: '6' });
+  const captcha = h('div', { id: 'recaptcha-container' });
+  let verifier = null;
+  const showError = e => {
+    const code = e?.code || '';
+    const phoneErrors = {
+      'auth/invalid-phone-number':'رقم الهاتف غير صالح؛ اختر مفتاح الدولة وتحقق من الرقم.',
+      'auth/missing-phone-number':'أدخل رقم الهاتف أولاً.',
+      'auth/too-many-requests':'طلبات كثيرة من هذا الجهاز؛ انتظر قليلاً ثم أعد المحاولة.',
+      'auth/quota-exceeded':'تجاوز المشروع حد رسائل التحقق حالياً.',
+      'auth/captcha-check-failed':'تعذّر التحقق الأمني؛ أعد تحميل الصفحة وحاول مجدداً.',
+      'auth/invalid-verification-code':'رمز التحقق غير صحيح.',
+      'auth/code-expired':'انتهت صلاحية الرمز؛ اطلب رمزاً جديداً.',
+      'auth/network-request-failed':'تعذّر الاتصال؛ تحقق من الإنترنت ثم أعد المحاولة.',
+      'auth/operation-not-allowed':'تسجيل الهاتف غير مفعّل بعد في إعدادات Firebase Authentication.',
+      'auth/invalid-app-credential':'فشل التحقق الأمني للتطبيق؛ راجع النطاقات وإعدادات Firebase.'
+    };
+    err.textContent = phoneErrors[code] || ERR[code] || e?.message || 'حدث خطأ، حاول مجدداً.';
+  };
+  const phoneE164 = () => {
+    const digits = phone.value.replace(/[^0-9]/g, '').replace(/^0+/, '');
+    if (!digits) throw { code: 'auth/missing-phone-number' };
+    return country.value + digits;
+  };
+  const sendCode = async () => {
+    err.textContent = ''; go.disabled = true;
+    try {
+      if (mode === 'signup' && name.value.trim().length < 2) throw { message: 'اكتب اسماً من حرفين على الأقل' };
+      const full = phoneE164();
+      if (!verifier) verifier = new RecaptchaVerifier(auth, 'recaptcha-container', { size: 'invisible' });
+      await verifier.render();
+      const result = await signInWithPhoneNumber(auth, full, verifier);
+      authView(mode, 'أرسلنا رمز التحقق إلى ' + full, 'phone', 'code', result, full);
+    } catch (e) {
+      try { if (verifier) { verifier.clear(); verifier = null; } } catch {}
+      showError(e); go.disabled = false;
+    }
+  };
+  const confirmCode = async () => {
+    err.textContent = ''; go.disabled = true;
+    try {
+      if (!/^\d{6}$/.test(otp.value.trim())) throw { message: 'أدخل رمز التحقق المكوّن من 6 أرقام.' };
+      const credential = await confirmation.confirm(otp.value.trim());
+      if (mode === 'signup' && name.value.trim().length >= 2 && !credential.user.displayName) {
+        await updateProfile(credential.user, { displayName: name.value.trim() });
+      }
+    } catch (e) { showError(e); go.disabled = false; }
+  };
+  const runEmail = async () => {
     err.textContent = ''; go.disabled = true;
     try {
       if (mode === 'login') await signInWithEmailAndPassword(auth, email.value.trim(), pass.value);
@@ -247,15 +298,25 @@ function authView(mode = 'login', msg = '') {
         const cr = await createUserWithEmailAndPassword(auth, email.value.trim(), pass.value);
         await updateProfile(cr.user, { displayName: name.value.trim() }); await sendEmailVerification(cr.user);
       }
-    } catch (e) { err.textContent = ERR[e.code] || e.message || 'حدث خطأ'; go.disabled = false; }
+    } catch (e) { showError(e); go.disabled = false; }
   };
-  go.onclick = run; pass.onkeydown = e => { if (e.key === 'Enter') run(); };
+  go.onclick = method === 'phone' ? (phoneStep === 'number' ? sendCode : confirmCode) : runEmail;
+  pass.onkeydown = e => { if (e.key === 'Enter') runEmail(); };
+  otp.onkeydown = e => { if (e.key === 'Enter') confirmCode(); };
+  const methodButtons = h('div', { class: 'auth-methods', style: { display: 'flex', gap: '8px', margin: '12px 0' } },
+    h('button', { class: 'btn ' + (method === 'email' ? '' : 'ghost'), style: { flex: 1 }, onclick: () => authView(mode, '', 'email') }, 'البريد الإلكتروني'),
+    h('button', { class: 'btn ' + (method === 'phone' ? '' : 'ghost'), style: { flex: 1 }, onclick: () => authView(mode, '', 'phone') }, 'رقم الهاتف'));
+  const fields = method === 'email'
+    ? [mode === 'signup' ? name : null, email, h('div', { class: 'pw' }, pass, eye)]
+    : phoneStep === 'number'
+      ? [mode === 'signup' ? name : null, h('div', { style: { display: 'flex', gap: '8px', width: '100%' } }, country, phone), h('small', { class: 'sub' }, 'أدخل رقمك دون الصفر الأول، واختر مفتاح الدولة. ستصلك رسالة SMS للتحقق.'), captcha]
+      : [mode === 'signup' ? name : null, h('p', { class: 'sub', dir: 'ltr' }, sentPhone), otp, h('button', { class: 'link', onclick: () => authView(mode, '', 'phone', 'number') }, 'تغيير الرقم أو إعادة طلب الرمز')];
   $('#main').replaceChildren(h('div', { class: 'auth' },
     h('img', { src: 'icon-512.png', alt: 'كلمات' }), h('h1', {}, 'كلمات ماسنجر'),
-    h('p', {}, mode === 'login' ? 'سجّل دخولك لمتابعة محادثاتك' : 'أنشئ حسابك — سنرسل رابط تفعيل إلى بريدك'),
-    mode === 'signup' ? name : null, email, h('div', { class: 'pw' }, pass, eye), err, go,
-    mode === 'login' ? h('button', { class: 'link', onclick: async () => { if (!email.value.trim()) { err.textContent = 'اكتب بريدك أولاً'; return; } try { await sendPasswordResetEmail(auth, email.value.trim()); err.style.color = 'var(--ok)'; err.textContent = 'أرسلنا رابط استعادة كلمة المرور إلى بريدك'; } catch (e) { err.textContent = ERR[e.code] || 'تعذّر الإرسال'; } } }, 'نسيت كلمة المرور؟') : null,
-    h('button', { class: 'link', onclick: () => authView(mode === 'login' ? 'signup' : 'login') }, mode === 'login' ? 'ليس لديك حساب؟ أنشئ حساباً' : 'لديك حساب؟ سجّل الدخول')));
+    h('p', {}, method === 'phone' ? (phoneStep === 'number' ? 'استخدم رقم هاتفك لتسجيل الدخول أو إنشاء حساب' : 'أدخل رمز التحقق الذي وصل برسالة SMS') : (mode === 'login' ? 'سجّل دخولك لمتابعة محادثاتك' : 'أنشئ حسابك — سنرسل رابط تفعيل إلى بريدك')),
+    methodButtons, ...fields, err, go,
+    method === 'email' && mode === 'login' ? h('button', { class: 'link', onclick: async () => { if (!email.value.trim()) { err.textContent = 'اكتب بريدك أولاً'; return; } try { await sendPasswordResetEmail(auth, email.value.trim()); err.style.color = 'var(--ok)'; err.textContent = 'أرسلنا رابط استعادة كلمة المرور إلى بريدك'; } catch (e) { showError(e); } } }, 'نسيت كلمة المرور؟') : null,
+    h('button', { class: 'link', onclick: () => authView(mode === 'login' ? 'signup' : 'login', '', method) }, mode === 'login' ? 'ليس لديك حساب؟ أنشئ حساباً' : 'لديك حساب؟ سجّل الدخول')));
 }
 function verifyView(user) {
   S.view = 'verify'; $('#nav').hidden = true; const msg = h('div', { class: 'err' });
@@ -270,7 +331,7 @@ function verifyView(user) {
 onAuthStateChanged(auth, async user => {
   teardown();
   if (!user) { S.uid = null; return authView(); }
-  if (!user.emailVerified) return verifyView(user);
+  if (user.email && !user.emailVerified) return verifyView(user);
   try { await boot(user); } catch (e) { console.error(e); $('#main').replaceChildren(h('div', { class: 'empty' }, 'تعذّر بدء التطبيق: ' + (e.code || e.message), h('br'), h('br'), h('button', { class: 'btn', onclick: () => location.reload() }, 'إعادة المحاولة'))); }
 });
 function teardown() { S.unsubs.forEach(f => f()); S.unsubs = []; S.stUnsubs.forEach(f => f()); S.stUnsubs = []; S.stKey = ''; S.chats.clear(); S.watched.clear(); S.booted = false; clearInterval(S.hb); }
@@ -279,7 +340,7 @@ async function boot(user) {
   const ref = doc(db, 'mx_users', S.uid);
   const keys = await ensureKeys(S.uid);
   let snap = await getDoc(ref).catch(() => null);
-  const base = { name: user.displayName || user.email.split('@')[0], pk: keys.pub, ls: Date.now() };
+  const base = { name: user.displayName || (user.email ? user.email.split('@')[0] : 'مستخدم'), pk: keys.pub, ls: Date.now() };
   if (!snap || !snap.exists()) {
     await setDoc(ref, { ...base, sk: base.name.toLowerCase(), bio: 'متاح على كلمات', av: '', code: 'KLM-' + Array.from(crypto.getRandomValues(new Uint8Array(6)), x => 'ABCDEFGHJKMNPQRSTUVWXYZ23456789'[x % 31]).join(''), pv: { rr: true, ty: true, ls: true, dc: true }, created: Date.now() });
   } else if (snap.data().pk?.x !== keys.pub.x || snap.data().pk?.y !== keys.pub.y) await updateDoc(ref, { pk: keys.pub });
