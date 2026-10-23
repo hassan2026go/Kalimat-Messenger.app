@@ -86,7 +86,7 @@ const S = {
   cfg: Object.assign({ theme: 'indigo', mode: 'dark', wp: 'dots', sound: true, heads: true, notif: false, callsSeen: 0, pin: null, pinnedChats: [], mutedChats: [] }, (() => { try { return JSON.parse(localStorage.getItem('kmx-cfg') || '{}'); } catch { return {}; } })()),
 };
 const saveCfg = () => { try { localStorage.setItem('kmx-cfg', JSON.stringify(S.cfg)); } catch {} applyCfg(); };
-function applyCfg() { const r = document.documentElement; r.dataset.theme = S.cfg.theme; r.dataset.mode = S.cfg.mode; $('meta[name=theme-color]').content = S.cfg.mode === 'light' ? '#f2f5fc' : '#0a1020'; }
+function applyCfg() { const r = document.documentElement; r.dataset.theme = S.cfg.theme; r.dataset.mode = S.cfg.mode; const fs = Math.min(100, Math.max(10, Number(S.cfg.fontScale) || 10)); r.style.setProperty("--font-scale", String(1 + (fs - 10) / 90)); $('meta[name=theme-color]').content = S.cfg.mode === 'light' ? '#f2f5fc' : '#0a1020'; }
 applyCfg();
 const U = uid => S.users.get(uid) || { name: '…', _ph: true };
 let rq = 0; const render = (force) => { if (rq) return; rq = setTimeout(() => { rq = 0; renderNow(force); }, 40); };
@@ -221,7 +221,7 @@ function avatar(u, size = 48, dot = false, extra = '') {
   return h('div', { class: 'av ' + extra, style: st }, u.av ? h('img', { src: u.av, alt: '' }) : (u.name || '؟').trim().charAt(0), dot ? h('i') : null);
 }
 const sw = (title, desc, on, fn) => { const s = h('span', { class: 'sw' + (on ? ' on' : '') }); const r = h('div', { class: 'set', onclick: () => { on = !on; s.classList.toggle('on', on); fn(on); } }, h('div', { class: 't' }, h('b', {}, title), desc ? h('small', {}, desc) : null), s); return r; };
-const hdr = (title, sub, ...btns) => h('div', { class: 'hd' }, h('div', { style: { flex: 1 } }, h('h1', {}, title), sub ? h('div', { class: 'sub' }, sub) : null), ...btns);
+const hdr = (title, sub, ...btns) => h('div', { class: 'hd' }, h('div', { class: 'k-brand' }, h('img', { src: 'icon-192.png', alt: '', width: 27, height: 27 }), h('b', {}, 'Kalimat'), h('small', {}, 'كلمات')), h('div', { style: { flex: 1 } }, h('h1', {}, title), sub ? h('div', { class: 'sub' }, sub) : null), ...btns);
 function ticks(m, c) {
   if (m.from !== S.uid) return null;
   if (m.pending) return h('span', {}, '🕓');
@@ -804,6 +804,7 @@ function vSettings() {
       sw('فقاعة المحادثات العائمة', 'تظهر عليها عدد الرسائل غير المقروءة', S.cfg.heads, v => { S.cfg.heads = v; saveCfg(); setupHeads(); }),
       'Notification' in window ? sw('إشعارات المتصفح', 'تعمل والتطبيق مفتوح في الخلفية (بدون إشعارات دفع)', S.cfg.notif && Notification.permission === 'granted', async v => { if (v) { const r = await Notification.requestPermission(); S.cfg.notif = r === 'granted'; if (!S.cfg.notif) { toast('لم تُمنح الصلاحية'); render(true); } } else S.cfg.notif = false; saveCfg(); }) : null),
     h('div', { class: 'card' }, h('h3', {}, 'المظهر'),
+      h('div', { class: 'font-control' }, h('div', { class: 'font-scale-label' }, h('label', { for: 'km-font-scale', style: { color: 'var(--tx)', fontWeight: 700 } }, 'حجم الخط'), h('output', { id: 'km-font-scale-value', for: 'km-font-scale' }, String(Math.min(100, Math.max(10, Number(S.cfg.fontScale) || 10))))), h('input', { id: 'km-font-scale', type: 'range', min: '10', max: '100', step: '1', value: String(Math.min(100, Math.max(10, Number(S.cfg.fontScale) || 10))), 'aria-label': 'حجم الخط من 10 إلى 100', oninput: e => { const v = Math.min(100, Math.max(10, Number(e.target.value) || 10)); S.cfg.fontScale = v; document.documentElement.style.setProperty('--font-scale', String(1 + (v - 10) / 90)); const o = $('#km-font-scale-value'); if (o) o.value = String(v); saveCfg(); } }), h('div', { class: 'font-scale-label' }, h('span', {}, '10 — الحجم الطبيعي'), h('span', {}, '100 — الأكبر'))),
       sw('الوضع الداكن', null, S.cfg.mode === 'dark', v => { S.cfg.mode = v ? 'dark' : 'light'; reRender(); }),
       h('div', { class: 'sw-themes' }, themes.map(([k, t, c]) => h('button', { class: S.cfg.theme === k ? 'on' : '', onclick: () => { S.cfg.theme = k; reRender(); } }, h('b', { style: { background: c } }), t))),
       h('div', { class: 'set', style: { flexDirection: 'column', alignItems: 'stretch' } },
@@ -832,7 +833,8 @@ function vSettings() {
     h('div', { class: 'card' }, h('h3', {}, 'التطبيق'),
       deferredInstall ? h('div', { class: 'set' }, h('button', { class: 'btn full', onclick: async () => { deferredInstall.prompt(); deferredInstall = null; render(true); } }, ico('down', 18), 'تثبيت التطبيق على الشاشة الرئيسية')) : null,
       h('div', { class: 'set' }, h('div', { class: 't' }, h('b', {}, 'مسح الذاكرة المؤقتة'), h('small', {}, 'لا يحذف حسابك ولا مفاتيح التشفير')), h('button', { class: 'btn ghost', onclick: async () => { S.msgCache.clear(); S.pv.clear(); if (window.caches) for (const k of await caches.keys()) await caches.delete(k); toast('تم المسح'); } }, 'مسح')),
-      h('div', { class: 'notice warn' }, 'تنبيه: لا تمسح بيانات الموقع من إعدادات المتصفح، فهذا يحذف مفاتيح التشفير وتصبح رسائلك القديمة غير مقروءة.')));
+      h('div', { class: 'notice warn' }, 'تنبيه: لا تمسح بيانات الموقع من إعدادات المتصفح، فهذا يحذف مفاتيح التشفير وتصبح رسائلك القديمة غير مقروءة.')),
+    h('div', { class: 'k-brand-footer' }, h('img', { src: 'icon-192.png', alt: 'شعار كلمات', width: 38, height: 38 }), h('div', {}, h('b', {}, 'Kalimat'), h('span', {}, 'كلمات · تواصل بلا حدود'))));
 }
 const sha = async s => b64(new Uint8Array(await crypto.subtle.digest('SHA-256', new TextEncoder().encode('kmx:' + s))));
 let deferredInstall; window.addEventListener('beforeinstallprompt', e => { e.preventDefault(); deferredInstall = e; });
