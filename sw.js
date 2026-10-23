@@ -8,7 +8,7 @@ self.addEventListener('fetch', e => {
   if (u.origin === location.origin) {
     e.respondWith(fetch(r).then(res => { if (res && res.ok) { const cp = res.clone(); caches.open(V).then(c => c.put(r, cp)); } return res; }).catch(() => caches.match(r).then(m => { if (m) return m; if (r.mode === 'navigate') return caches.match('./index.html'); return Response.error(); })));
   } else if (u.hostname === 'www.gstatic.com' && u.pathname.includes('/firebasejs/')) {
-    e.respondWith(caches.match(r).then(m => m || fetch(r).then(res => { const cp = res.clone(); caches.open(V).then(c => c.put(r, cp)); return res; })));
+    e.respondWith(caches.match(r).then(m => m || fetch(r).then(res => { if (res && res.ok) { const cp = res.clone(); caches.open(V).then(c => c.put(r, cp)); } return res; })));
   }
 });
 
