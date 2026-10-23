@@ -133,6 +133,7 @@ jobs:
 
           cp index.html app.js firebase-config.js manifest.json sw.js www/
           cp icon-192.png icon-512.png icon-maskable-512.png www/
+          cp icon.svg www/
           # Use the existing Kalimat feather artwork as the native Android launcher icon source.
           cp generated-icons/icon.png assets/icon.png
           npx capacitor-assets generate --android --assetPath assets
