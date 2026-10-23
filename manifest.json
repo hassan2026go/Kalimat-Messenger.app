@@ -1,7 +1,7 @@
 {
-  "name": "Kalimat Messenger",
+  "name": "Kalimat",
   "short_name": "Kalimat",
-  "description": "مراسلة مشفّرة ومكالمات وحالات",
+  "description": "منصة كلمات للمراسلة والمكالمات والحالات",
   "id": "./",
   "start_url": "./",
   "scope": "./",
