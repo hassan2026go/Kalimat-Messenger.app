@@ -554,8 +554,17 @@ function msgMenu(m, p) {
   const rr = h('div', { style: { display: 'flex', justifyContent: 'space-around', fontSize: '30px', padding: '4px 0 14px' } }, REACTS.map(e => h('button', { style: { fontSize: '30px' }, onclick: async () => { close(); const mine = m.reactions?.[S.uid] === e; await updateDoc(ref, { ['reactions.' + S.uid]: mine ? deleteField() : e }).catch(() => toast('تعذّر التفاعل')); } }, e)));
   const act = (icon, label, fn, cls = 'ghost') => h('button', { class: 'btn ' + cls + ' full', style: { marginBottom: '8px', justifyContent: 'flex-start' }, onclick: () => { close(); fn(); } }, ico(icon, 18), label);
   const prev = m.type === 'text' ? (p?.text || '').slice(0, 60) : ({ image: '📷 صورة', voice: '🎤 صوت', file: '📎 ملف' })[m.type];
+  const saveMedia = () => {
+    if (!p?.data || !['image', 'voice', 'file'].includes(m.type)) return toast('الوسيط غير متاح للحفظ');
+    const a = document.createElement('a'); a.href = p.data;
+    const ext = m.type === 'image' ? 'jpg' : m.type === 'voice' ? 'webm' : '';
+    a.download = m.type === 'file' ? (p.name || 'kalimat-file') : 'kalimat-' + m.type + '-' + new Date(m.t || Date.now()).toISOString().replace(/[:.]/g, '-') + (ext ? '.' + ext : '');
+    a.rel = 'noopener'; document.body.append(a); a.click(); a.remove();
+    toast('بدأ حفظ الملف على جهازك');
+  };
   const close = modal('', rr, act('reply', 'رد', () => { S.reply = { id: m.id, from: m.from, prev: prev || '' }; paintReply(); $('#minput')?.focus(); }),
     m.type === 'text' && p ? act('copy', 'نسخ', () => navigator.clipboard?.writeText(p.text).then(() => toast('تم النسخ'))) : null,
+    ['image', 'voice', 'file'].includes(m.type) && p?.data ? act('down', 'حفظ الوسيط على الهاتف', saveMedia) : null,
     m.from === S.uid ? act('trash', 'حذف للجميع', async () => { await updateDoc(ref, { deleted: true, body: deleteField(), reactions: deleteField() }).catch(() => toast('تعذّر الحذف')); }, 'red') : null);
 }
 function paintReply() { const r = $('#replybar'); if (!r) return; r.replaceChildren(...(S.reply ? [h('div', { class: 'replybar', style: { padding: 0, border: 0, width: '100%' } }, ico('reply', 16), h('span', {}, 'رد على ', h('b', {}, S.reply.from === S.uid ? 'نفسك' : U(S.reply.from).name), ': ', S.reply.prev), h('button', { onclick: () => { S.reply = null; paintReply(); } }, ico('x', 18)))] : [])); r.className = S.reply ? 'replybar' : ''; }
