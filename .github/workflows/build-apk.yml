@@ -38,7 +38,26 @@ jobs:
           test -s icon-maskable-512.png
           node -e "JSON.parse(require('fs').readFileSync('manifest.json', 'utf8'))"
           node --input-type=module --check < app.js
-          echo "Application files, manifest JSON, and JavaScript syntax passed validation."
+          node --check sw.js
+          node -e "
+          const fs = require('fs');
+          const html = fs.readFileSync('index.html', 'utf8');
+          const manifest = JSON.parse(fs.readFileSync('manifest.json', 'utf8'));
+          if (!html.includes('app.js') || !html.includes('manifest.json')) {
+            throw new Error('index.html must load app.js and reference manifest.json');
+          }
+          for (const icon of manifest.icons || []) {
+            if (!fs.existsSync(icon.src)) throw new Error('Missing manifest icon: ' + icon.src);
+          }
+          for (const [file, expected] of [['icon-192.png', 192], ['icon-512.png', 512], ['icon-maskable-512.png', 512]]) {
+            const b = fs.readFileSync(file);
+            if (b.toString('hex', 0, 8) !== '89504e470d0a1a0a') throw new Error(file + ' is not a PNG');
+            const w = b.readUInt32BE(16), h = b.readUInt32BE(20);
+            if (w !== expected || h !== expected) throw new Error(file + ' must be ' + expected + 'x' + expected + ', got ' + w + 'x' + h);
+          }
+          console.log('HTML references, manifest icons, PNG formats/dimensions, app.js, and sw.js validated.');
+          "
+          echo "Application smoke checks passed."
 
       - name: Install Node.js
         uses: actions/setup-node@v4
