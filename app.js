@@ -557,7 +557,7 @@ function msgMenu(m, p) {
   const saveMedia = () => {
     if (!p?.data || !['image', 'voice', 'file'].includes(m.type)) return toast('الوسيط غير متاح للحفظ');
     const a = document.createElement('a'); a.href = p.data;
-    const ext = m.type === 'image' ? 'jpg' : m.type === 'voice' ? 'webm' : '';
+    const mime = /^data:([^;,]+)/.exec(p.data)?.[1] || ''; const ext = m.type === 'image' ? 'jpg' : m.type === 'voice' ? (mime.includes('mp4') ? 'm4a' : mime.includes('ogg') ? 'ogg' : 'webm') : '';
     a.download = m.type === 'file' ? (p.name || 'kalimat-file') : 'kalimat-' + m.type + '-' + new Date(m.t || Date.now()).toISOString().replace(/[:.]/g, '-') + (ext ? '.' + ext : '');
     a.rel = 'noopener'; document.body.append(a); a.click(); a.remove();
     toast('بدأ حفظ الملف على جهازك');
