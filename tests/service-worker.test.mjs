@@ -79,3 +79,22 @@ test('failed same-origin responses are not cached', async () => {
   assert.equal(response.status, 500);
   assert.equal(env.cacheCalls.some(call => call[0] === 'open'), false);
 });
+
+
+test('push notification preserves a same-origin destination', async () => {
+  const env = boot();
+  let pending;
+  env.listeners.push({ data: { json: () => ({ title: 'Test', url: '/chat/123' }) }, waitUntil: p => { pending = p; } });
+  await pending;
+  assert.equal(env.notifications[0][1].data.url, 'https://kalimat.example/chat/123');
+});
+
+test('service worker leaves non-GET requests untouched', () => {
+  const env = boot();
+  let intercepted = false;
+  env.listeners.fetch({
+    request: new Request('https://kalimat.example/send-message', { method: 'POST', body: 'test' }),
+    respondWith: () => { intercepted = true; }
+  });
+  assert.equal(intercepted, false);
+});
