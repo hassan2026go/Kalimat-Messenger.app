@@ -98,3 +98,35 @@ test('service worker leaves non-GET requests untouched', () => {
   });
   assert.equal(intercepted, false);
 });
+
+test('offline navigation falls back to the cached app shell', async () => {
+  const shell = new Response('offline app shell', { status: 200 });
+  const env = boot({
+    fetch: async () => { throw new Error('offline'); },
+    caches: {
+      open: async () => ({ addAll: async () => {}, put: async () => {} }),
+      keys: async () => ['kmx-v2'],
+      delete: async () => true,
+      match: async key => key === './index.html' ? shell : null
+    }
+  });
+  let responsePromise;
+  env.listeners.fetch({
+    request: { method: 'GET', url: 'https://kalimat.example/messages/room-1', mode: 'navigate' },
+    respondWith: promise => { responsePromise = promise; }
+  });
+  const response = await responsePromise;
+  assert.equal(await response.text(), 'offline app shell');
+});
+
+test('offline missing static assets fail instead of returning the HTML shell', async () => {
+  const env = boot({ fetch: async () => { throw new Error('offline'); } });
+  let responsePromise;
+  env.listeners.fetch({
+    request: { method: 'GET', url: 'https://kalimat.example/missing.js', mode: 'no-cors' },
+    respondWith: promise => { responsePromise = promise; }
+  });
+  const response = await responsePromise;
+  assert.equal(response.type, 'error');
+});
+
