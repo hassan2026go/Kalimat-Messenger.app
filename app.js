@@ -187,10 +187,29 @@ function beep(freqs = [880, 1175], dur = .12) {
   if (!S.cfg.sound) return;
   try { actx = actx || new (window.AudioContext || window.webkitAudioContext)(); freqs.forEach((f, i) => { const o = actx.createOscillator(), g = actx.createGain(); o.frequency.value = f; o.connect(g); g.connect(actx.destination); const t = actx.currentTime + i * dur; g.gain.setValueAtTime(.0001, t); g.gain.exponentialRampToValueAtTime(.18, t + .02); g.gain.exponentialRampToValueAtTime(.0001, t + dur); o.start(t); o.stop(t + dur + .02); }); } catch {}
 }
-function notify(cid, c) {
-  const name = chatName(c); beep();
-  if (document.hidden && 'Notification' in window && Notification.permission === 'granted') { try { new Notification(name, { body: 'رسالة جديدة', icon: 'icon-192.png', tag: cid }); } catch {} }
-  else if (S.chat?.id !== cid) toast('💬 رسالة جديدة من ' + name);
+async function notify(cid, c) {
+  const name = chatName(c);
+  beep();
+  if (S.chat?.id === cid) return;
+  if (!document.hidden) {
+    toast('💬 رسالة جديدة من ' + name);
+    return;
+  }
+  if (!('Notification' in window) || Notification.permission !== 'granted') return;
+  const options = { body: 'لديك رسالة جديدة', icon: './icon-192.png', badge: './icon-192.png', tag: 'kalimat-' + cid, renotify: false, data: { url: './' } };
+  try {
+    // Prefer the service worker notification API where supported (including installed web apps).
+    if ('serviceWorker' in navigator) {
+      const reg = await navigator.serviceWorker.ready;
+      if (reg && typeof reg.showNotification === 'function') {
+        await reg.showNotification(name, options);
+        return;
+      }
+    }
+    new Notification(name, options);
+  } catch (e) {
+    console.warn('تعذّر عرض إشعار الرسالة:', e);
+  }
 }
 
 /* ───────── مكونات واجهة ───────── */
