@@ -1,6 +1,6 @@
 // خدمة العمل: تخزين الواجهة للعمل بدون إنترنت. الشبكة أولاً لملفات التطبيق حتى لا تعلق نسخة قديمة.
 const V = 'kmx-v2';
-const SHELL = ['./', 'index.html', 'app.js', 'firebase-config.js', 'manifest.json', 'icon-192.png', 'icon-512.png', 'icon-maskable-512.png'];
+const SHELL = ['./', 'index.html', 'app.js', 'firebase-config.js', 'manifest.json', 'icon.svg', 'icon.svg', 'icon.svg'];
 self.addEventListener('install', e => { e.waitUntil(caches.open(V).then(c => c.addAll(SHELL).catch(() => {})).then(() => self.skipWaiting())); });
 self.addEventListener('activate', e => { e.waitUntil(caches.keys().then(ks => Promise.all(ks.filter(k => k !== V).map(k => caches.delete(k)))).then(() => self.clients.claim())); });
 self.addEventListener('fetch', e => {
