@@ -230,11 +230,11 @@ function ticks(m, c) {
 }
 
 /* ───────── التسجيل والدخول ───────── */
-function authView(mode = 'login', msg = '', method = 'email', phoneStep = 'number', confirmation = null, sentPhone = '') {
+function authView(mode = 'login', msg = '', method = 'email', phoneStep = 'number', confirmation = null, sentPhone = '', sentName = '') {
   S.view = 'auth'; $('#nav').hidden = true; $('#heads').style.display = 'none';
   const err = h('div', { class: 'err' }, msg);
   const go = h('button', { class: 'btn full' }, mode === 'login' ? 'تسجيل الدخول' : 'إنشاء حساب');
-  const name = h('input', { placeholder: 'الاسم الظاهر', autocomplete: 'name' });
+  const name = h('input', { placeholder: 'الاسم الظاهر', autocomplete: 'name', value: sentName });
   const email = h('input', { type: 'email', placeholder: 'البريد الإلكتروني', autocomplete: 'email', dir: 'ltr' });
   const pass = h('input', { type: 'password', placeholder: 'كلمة المرور', autocomplete: mode === 'login' ? 'current-password' : 'new-password', dir: 'ltr' });
   const eye = h('button', { type: 'button', onclick: () => { pass.type = pass.type === 'password' ? 'text' : 'password'; } }, ico('eye', 20));
@@ -273,7 +273,7 @@ function authView(mode = 'login', msg = '', method = 'email', phoneStep = 'numbe
       if (!verifier) verifier = new RecaptchaVerifier(auth, 'recaptcha-container', { size: 'invisible' });
       await verifier.render();
       const result = await signInWithPhoneNumber(auth, full, verifier);
-      authView(mode, 'أرسلنا رمز التحقق إلى ' + full, 'phone', 'code', result, full);
+      authView(mode, 'أرسلنا رمز التحقق إلى ' + full, 'phone', 'code', result, full, name.value.trim());
     } catch (e) {
       try { if (verifier) { verifier.clear(); verifier = null; } } catch {}
       showError(e); go.disabled = false;
@@ -284,8 +284,10 @@ function authView(mode = 'login', msg = '', method = 'email', phoneStep = 'numbe
     try {
       if (!/^\d{6}$/.test(otp.value.trim())) throw { message: 'أدخل رمز التحقق المكوّن من 6 أرقام.' };
       const credential = await confirmation.confirm(otp.value.trim());
-      if (mode === 'signup' && name.value.trim().length >= 2 && !credential.user.displayName) {
+      if (mode === 'signup' && name.value.trim().length >= 2) {
         await updateProfile(credential.user, { displayName: name.value.trim() });
+        // Keep the chat profile name in sync even if the auth-state boot races this update.
+        await setDoc(doc(db, 'mx_users', credential.user.uid), { name: name.value.trim(), sk: name.value.trim().toLowerCase() }, { merge: true }).catch(() => {});
       }
     } catch (e) { showError(e); go.disabled = false; }
   };
