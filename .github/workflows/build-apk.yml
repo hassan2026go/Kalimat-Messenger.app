@@ -22,6 +22,21 @@ jobs:
       - name: Get project files
         uses: actions/checkout@v4
 
+      - name: Validate application files
+        run: |
+          set -e
+          test -s index.html
+          test -s app.js
+          test -s firebase-config.js
+          test -s manifest.json
+          test -s sw.js
+          test -s icon-192.png
+          test -s icon-512.png
+          test -s icon-maskable-512.png
+          node -e "JSON.parse(require('fs').readFileSync('manifest.json', 'utf8'))"
+          node --input-type=module --check < app.js
+          echo "Application files, manifest JSON, and JavaScript syntax passed validation."
+
       - name: Install Node.js
         uses: actions/setup-node@v4
         with:
@@ -67,8 +82,8 @@ jobs:
           }
           EOF
 
-          npm install @capacitor/core@6 @capacitor/android@6
-          npm install --save-dev @capacitor/cli@6
+          npm install --no-audit --no-fund @capacitor/core@6 @capacitor/android@6
+          npm install --no-audit --no-fund --save-dev @capacitor/cli@6
 
           mkdir -p www
 
