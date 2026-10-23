@@ -31,7 +31,7 @@ test('Android build rasterizes the same vector artwork before generating native 
   assert.match(workflow, /node scripts\/generate-icons\.mjs/);
   assert.match(workflow, /cp generated-icons\/icon\.png assets\/icon\.png/);
   assert.match(workflow, /cp icon\.svg www\//);
-  assert.match(generator, /icon-192\.png/);
-  assert.match(generator, /icon-512\.png/);
+  assert.match(generator, /\[192, 512\]/);
+  assert.match(generator, /generated-icons\/icon-\$\{size\}\.png/);
   assert.match(generator, /icon-maskable-512\.png/);
 });
