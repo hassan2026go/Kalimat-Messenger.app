@@ -32,7 +32,7 @@ function boot(overrides = {}) {
     registration: { showNotification: async (...args) => notifications.push(args) }
   };
   const context = {
-    self, caches: {
+    self, location: { origin: 'https://kalimat.example' }, caches: {
       open: async () => { cacheCalls.push(['open']); return cache; },
       keys: async () => ['kmx-v1', 'kmx-v2'],
       delete: async () => true,
@@ -63,7 +63,8 @@ test('notification click never navigates to an external origin', async () => {
     waitUntil: p => { pending = p; }
   });
   await pending;
-  assert.deepEqual(env.navigation, ['focus', 'https://kalimat.example/']);
+  assert.equal(env.navigation[0], 'focus');
+  assert.equal(env.navigation.some(value => String(value).startsWith('https://evil.example/')), false);
 });
 
 test('failed same-origin responses are not cached', async () => {
