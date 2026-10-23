@@ -41,6 +41,17 @@ jobs:
           node --check sw.js
           node -e "
           const fs = require('fs');
+          const sw = fs.readFileSync('sw.js', 'utf8');
+          if (!sw.includes('requested.origin === self.location.origin')) {
+            throw new Error('Notification clicks must be restricted to the app origin');
+          }
+          if (!sw.includes('res && res.ok')) {
+            throw new Error('Service worker should cache only successful HTTP responses');
+          }
+          console.log('Service-worker origin and cache safety guards validated.');
+          "
+          node -e "
+          const fs = require('fs');
           const html = fs.readFileSync('index.html', 'utf8');
           const manifest = JSON.parse(fs.readFileSync('manifest.json', 'utf8'));
           if (!html.includes('app.js') || !html.includes('manifest.json')) {
