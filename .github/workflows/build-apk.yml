@@ -151,6 +151,23 @@ jobs:
           npx capacitor-assets generate --android --assetPath assets
           npx cap sync android
 
+          # Declare runtime permissions needed by WebRTC media and Android 13+ notifications.
+          MANIFEST="android/app/src/main/AndroidManifest.xml"
+          python3 - <<'PY'
+          from pathlib import Path
+          p = Path("android/app/src/main/AndroidManifest.xml")
+          s = p.read_text()
+          marker = '<manifest xmlns:android="http://schemas.android.com/apk/res/android">'
+          permissions = '''<uses-permission android:name="android.permission.INTERNET" />
+              <uses-permission android:name="android.permission.CAMERA" />
+              <uses-permission android:name="android.permission.RECORD_AUDIO" />
+              <uses-permission android:name="android.permission.MODIFY_AUDIO_SETTINGS" />
+              <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />'''
+          if 'android.permission.CAMERA' not in s:
+              s = s.replace(marker, marker + '\\n    ' + permissions, 1)
+          p.write_text(s)
+          PY
+
       - name: Build APK
         run: |
           cd android
