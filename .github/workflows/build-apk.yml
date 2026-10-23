@@ -39,7 +39,7 @@ jobs:
           node -e "JSON.parse(require('fs').readFileSync('manifest.json', 'utf8'))"
           node --input-type=module --check < app.js
           node --check sw.js
-          node --input-type=module -e "
+          node -e "
           const fs = require('fs');
           const html = fs.readFileSync('index.html', 'utf8');
           const manifest = JSON.parse(fs.readFileSync('manifest.json', 'utf8'));
