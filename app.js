@@ -348,6 +348,21 @@ async function boot(user) {
   } else if (snap.data().pk?.x !== keys.pub.x || snap.data().pk?.y !== keys.pub.y) await updateDoc(ref, { pk: keys.pub });
   S.unsubs.push(onSnapshot(ref, s => { S.me = s.data(); S.users.set(S.uid, S.me); render(); }));
   while (!S.me) await sleep(50);
+
+  // Native Android only: register this installation with Firebase Cloud Messaging.
+  // The token is stored on the signed-in user's own profile; no message text is sent here.
+  if (window.Capacitor?.isNativePlatform?.()) {
+    try {
+      const nativePush = await import('./native-push.js');
+      nativePush.onNativePushToken(token => {
+        updateDoc(ref, { pushTokens: arrayUnion(token), pushTokenUpdatedAt: Date.now() })
+          .catch(e => console.warn('[Kalimat native push] token save failed', e));
+      });
+      await nativePush.startNativePush();
+    } catch (e) {
+      console.warn('[Kalimat native push] setup failed', e);
+    }
+  }
   $('#nav').hidden = false; S.view = 'app';
   S.hb = setInterval(() => { if (!document.hidden) updateDoc(ref, { ls: Date.now() }).catch(() => {}); }, 3 * 60e3);
   document.addEventListener('visibilitychange', () => { if (!document.hidden) updateDoc(ref, { ls: Date.now() }).catch(() => {}); });
