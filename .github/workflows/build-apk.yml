@@ -173,16 +173,23 @@ jobs:
             # Capacitor creates a fresh Android project on each build; configure Google Services here.
             node --input-type=module <<'NODE'
             import fs from 'node:fs';
-            const gradle = 'android/build.gradle';
-            let root = fs.readFileSync(gradle, 'utf8');
+            const rootFile = 'android/build.gradle';
+            let root = fs.readFileSync(rootFile, 'utf8');
             if (!root.includes("com.google.gms:google-services")) {
-              root += "\n\nbuildscript {\n    repositories { google(); mavenCentral() }\n    dependencies { classpath 'com.google.gms:google-services:4.4.2' }\n}\n";
-              fs.writeFileSync(gradle, root);
+              const dependencyBlock = /dependencies\s*\{/;
+              if (dependencyBlock.test(root)) {
+                root = root.replace(dependencyBlock, match => match + "\n        classpath 'com.google.gms:google-services:4.4.2'");
+              } else {
+                root = "buildscript { repositories { google(); mavenCentral() } dependencies { classpath 'com.google.gms:google-services:4.4.2' } }\n" + root;
+              }
+              fs.writeFileSync(rootFile, root);
             }
-            const appGradle = 'android/app/build.gradle';
-            let app = fs.readFileSync(appGradle, 'utf8');
-            if (!app.includes("com.google.gms.google-services")) app += "\napply plugin: 'com.google.gms.google-services'\n";
-            fs.writeFileSync(appGradle, app);
+            const appFile = 'android/app/build.gradle';
+            let app = fs.readFileSync(appFile, 'utf8');
+            if (!app.includes("com.google.gms.google-services")) {
+              app += "\napply plugin: 'com.google.gms.google-services'\n";
+              fs.writeFileSync(appFile, app);
+            }
             NODE
           else
             echo "GOOGLE_SERVICES_JSON is not configured; building APK without native FCM configuration."
