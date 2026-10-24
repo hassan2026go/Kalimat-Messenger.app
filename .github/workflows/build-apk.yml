@@ -25,6 +25,13 @@ jobs:
       - name: Get project files
         uses: actions/checkout@v4
 
+      - name: Validate Firebase notification functions
+        run: |
+          set -e
+          cd functions
+          npm install --no-audit --no-fund
+          npm run lint
+
       - name: Validate application files
         run: |
           set -e
