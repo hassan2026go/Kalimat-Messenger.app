@@ -116,6 +116,8 @@ jobs:
           cp generated-icons/icon-maskable-512.png icon-maskable-512.png
 
       - name: Prepare Capacitor project
+        env:
+          GOOGLE_SERVICES_JSON: ${{ secrets.GOOGLE_SERVICES_JSON }}
         run: |
           cat > package.json <<'EOF'
           {
