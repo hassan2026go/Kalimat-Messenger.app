@@ -165,7 +165,8 @@ jobs:
                 throw new Error('GOOGLE_SERVICES_JSON must belong to Firebase project kalimat-2014 and package com.kalimat.messenger');
               }
             "
-            npm install --no-audit --no-fund @capacitor/push-notifications@6
+            npm install --no-audit --no-fund @capacitor/push-notifications@6 esbuild
+            npx esbuild native-push-entry.js --bundle --format=esm --platform=browser --outfile=www/native-push.js
             npx cap sync android
 
             # Capacitor creates a fresh Android project on each build; configure Google Services here.
