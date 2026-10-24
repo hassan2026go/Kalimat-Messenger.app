@@ -2,13 +2,15 @@ import { PushNotifications } from '@capacitor/push-notifications';
 
 const listeners = new Set();
 let started = false;
+let lastToken = null;
 
 export async function startNativePush() {
   if (started) return null;
   started = true;
 
   PushNotifications.addListener('registration', token => {
-    for (const listener of listeners) listener(token.value);
+    lastToken = token.value;
+    for (const listener of listeners) listener(lastToken);
   });
   PushNotifications.addListener('registrationError', error => {
     console.error('[Kalimat native push] registration failed', error);
@@ -37,5 +39,6 @@ export async function startNativePush() {
 
 export function onNativePushToken(callback) {
   listeners.add(callback);
+  if (lastToken) callback(lastToken);
   return () => listeners.delete(callback);
 }
