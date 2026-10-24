@@ -74,6 +74,16 @@ jobs:
           "
           echo "Application smoke checks passed."
 
+      - name: Confirm native FCM secret is available
+        env:
+          GOOGLE_SERVICES_JSON: ${{ secrets.GOOGLE_SERVICES_JSON }}
+        run: |
+          if [ -z "${GOOGLE_SERVICES_JSON:-}" ]; then
+            echo "ERROR: GOOGLE_SERVICES_JSON secret is missing or empty."
+            exit 1
+          fi
+          echo "GOOGLE_SERVICES_JSON secret is present; value will not be printed."
+
       - name: Install Node.js
         uses: actions/setup-node@v4
         with:
