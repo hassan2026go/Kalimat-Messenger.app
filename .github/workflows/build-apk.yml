@@ -8,6 +8,7 @@ on:
   push:
     branches:
       - main
+      - feat/native-fcm-android
 
 permissions:
   contents: read
