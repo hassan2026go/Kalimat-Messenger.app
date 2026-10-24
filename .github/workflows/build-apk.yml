@@ -149,6 +149,41 @@ jobs:
 
           npx cap add android
           npx capacitor-assets generate --android --assetPath assets
+
+          # Native FCM setup is optional until the repository secret is configured.
+          # The secret must contain the complete google-services.json downloaded from Firebase.
+          if [ -n "${GOOGLE_SERVICES_JSON:-}" ]; then
+            printf '%s' "$GOOGLE_SERVICES_JSON" > android/app/google-services.json
+            node -e "
+              const fs = require('fs');
+              const cfg = JSON.parse(fs.readFileSync('android/app/google-services.json', 'utf8'));
+              const project = cfg.project_info || {};
+              const app = (cfg.client || []).find(c => c.client_info?.android_client_info?.package_name === 'com.kalimat.messenger');
+              if (project.project_id !== 'kalimat-2014' || !app) {
+                throw new Error('GOOGLE_SERVICES_JSON must belong to Firebase project kalimat-2014 and package com.kalimat.messenger');
+              }
+            "
+            npm install --no-audit --no-fund @capacitor/push-notifications@6
+            npx cap sync android
+
+            # Capacitor creates a fresh Android project on each build; configure Google Services here.
+            node --input-type=module <<'NODE'
+            import fs from 'node:fs';
+            const gradle = 'android/build.gradle';
+            let root = fs.readFileSync(gradle, 'utf8');
+            if (!root.includes("com.google.gms:google-services")) {
+              root += "\n\nbuildscript {\n    repositories { google(); mavenCentral() }\n    dependencies { classpath 'com.google.gms:google-services:4.4.2' }\n}\n";
+              fs.writeFileSync(gradle, root);
+            }
+            const appGradle = 'android/app/build.gradle';
+            let app = fs.readFileSync(appGradle, 'utf8');
+            if (!app.includes("com.google.gms.google-services")) app += "\napply plugin: 'com.google.gms.google-services'\n";
+            fs.writeFileSync(appGradle, app);
+            NODE
+          else
+            echo "GOOGLE_SERVICES_JSON is not configured; building APK without native FCM configuration."
+          fi
+
           npx cap sync android
 
       - name: Build APK
