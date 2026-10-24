@@ -190,7 +190,7 @@ jobs:
               app += "\napply plugin: 'com.google.gms.google-services'\n";
               fs.writeFileSync(appFile, app);
             }
-            NODE
+          NODE
           else
             echo "GOOGLE_SERVICES_JSON is not configured; building APK without native FCM configuration."
           fi
