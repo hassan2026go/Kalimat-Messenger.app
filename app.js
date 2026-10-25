@@ -797,20 +797,7 @@ function callPicker() {
   const close = modal('اتصال بـ…', peers.length ? peers.map(p => h('div', { class: 'row', style: { padding: '8px 0' } }, avatar(U(p), 42), h('div', { class: 'mid' }, U(p).name), h('button', { class: 'ib flat', onclick: () => { close(); startCall(p, false); } }, ico('phone', 20)), h('button', { class: 'ib flat', onclick: () => { close(); startCall(p, true); } }, ico('video', 20)))) : h('div', { class: 'empty' }, 'ابدأ محادثة مع شخص أولاً'));
 }
 
-/* ───────── الرادار ───────── */
-function vRadar() {
-  const peers = [...new Set([...S.chats.values()].filter(c => c.type === 'direct').map(peerOf))].map(p => [p, U(p)]), on = peers.filter(([, u]) => isOnline(u));
-  const pts = on.slice(0, 8).map(([p, u]) => { const a = (hash(p) % 360) * Math.PI / 180, r = 22 + (hash(p + 'r') % 22); return h('div', { class: 'pt', style: { left: 50 + r * Math.cos(a) + '%', top: 50 + r * Math.sin(a) + '%' } }, avatar(u, 34, true)); });
-  const inp = h('input', { placeholder: 'ابحث عن شخص بالاسم أو الرمز KLM-…' }); const out = h('div', {}); let t;
-  inp.oninput = () => { clearTimeout(t); t = setTimeout(async () => { const q = inp.value.trim(); out.replaceChildren(); if (q.length < 2) return; try { const m = new Map(); if (/^klm-/i.test(q)) (await getDocs(query(collection(db, 'mx_users'), where('code', '==', q.toUpperCase())))).forEach(d => m.set(d.id, d.data())); else { const k = q.toLowerCase(); (await getDocs(query(collection(db, 'mx_users'), where('sk', '>=', k), where('sk', '<=', k + ''), limit(10)))).forEach(d => d.data().pv?.dc !== false && m.set(d.id, d.data())); } m.delete(S.uid); if (!m.size) out.append(h('div', { class: 'empty' }, 'لا نتائج')); m.forEach((u, id) => { S.users.set(id, u); out.append(h('div', { class: 'row', onclick: () => startDirect(id) }, avatar(u, 44), h('div', { class: 'mid' }, h('div', { class: 'nm' }, u.name), h('div', { class: 'pv' }, h('span', {}, u.bio || ''))), h('span', { class: 'btn', style: { padding: '8px 14px' } }, 'محادثة'))); }); } catch { out.append(h('div', { class: 'empty' }, 'تعذّر البحث')); } }, 300); };
-  return h('div', {}, hdr('الرادار', 'المتصلون الآن من جهات اتصالك', h('span', { class: 'pill', style: { background: 'var(--panel2)', color: 'var(--acc)', height: '30px', padding: '0 12px', borderRadius: '10px' } }, on.length + ' متصل')),
-    h('div', { class: 'radar' }, h('div', { class: 'sweep' }), h('div', { class: 'me' }, 'أنت'), pts),
-    h('div', { class: 'hd', style: { paddingTop: 0 } }, h('div', { style: { color: 'var(--mut)', fontWeight: 700 } }, 'المتصلون الآن')),
-    on.length ? on.map(([p, u]) => { const id = [S.uid, p].sort().join('_'); return h('div', { class: 'row' }, avatar(u, 48, true), h('div', { class: 'mid' }, h('div', { class: 'nm' }, u.name), h('div', { class: 'pv' }, h('span', {}, u.bio || ''))),
-      h('button', { class: 'btn', style: { padding: '9px 14px' }, onclick: () => { openChat(id, { attach: true }); } }, 'إرسال ملف'), h('button', { class: 'ib flat', onclick: () => startCall(p, false) }, ico('phone', 20))); }) : h('div', { class: 'empty' }, 'لا أحد متصل من جهات اتصالك الآن'),
-    h('div', { class: 'hd', style: { paddingTop: 8 } }, h('div', { style: { color: 'var(--mut)', fontWeight: 700 } }, 'اكتشف أشخاصاً')), h('div', { class: 'search' }, ico('search', 18), inp), out,
-    h('div', { class: 'notice warn', style: { margin: '14px 16px' } }, 'الرادار يعتمد على الإنترنت، وليس Wi-Fi Direct. المتصفح لا يسمح بمشاركة الملفات القريبة بلا إنترنت.'));
-}
+/* Radar tab removed from the app navigation. */
 
 /* ───────── الإعدادات ───────── */
 function vSettings() {
@@ -819,7 +806,7 @@ function vSettings() {
   const pv = (k, t, d) => sw(t, d, u.pv?.[k] !== false, v => updateDoc(doc(db, 'mx_users', S.uid), { ['pv.' + k]: v }));
   const themes = [['indigo', 'نيلي سيراني', '#2563ff'], ['ocean', 'محيط سماوي', '#0ea5e9'], ['emerald', 'ماتريكس زمردي', '#10b981'], ['violet', 'بنفسجي ملكي', '#a855f7'], ['sunset', 'غروب', '#f97316']];
   const reRender = () => { saveCfg(); render(true); };
-  return h('div', {}, hdr('الإعدادات', 'كلمات v1.0'),
+  return h('div', {}, hdr('الإعدادات', 'Kalimat v1.0'),
     h('div', { class: 'card' }, h('h3', {}, 'الحساب'),
       h('div', { class: 'set' }, h('div', { class: 't' }, h('b', {}, 'البريد الإلكتروني'), h('small', { dir: 'ltr', style: { textAlign: 'start' } }, user?.email)), h('span', { class: 'pill', style: { background: 'var(--ok)' } }, 'موثّق ✓')),
       h('div', { class: 'set', onclick: () => navigator.clipboard?.writeText(u.code).then(() => toast('تم نسخ الرمز')) }, h('div', { class: 't' }, h('b', {}, 'رمزك للأصدقاء'), h('small', {}, 'شاركه ليجدك أصدقاؤك')), h('b', { dir: 'ltr', style: { color: 'var(--acc)' } }, u.code), ico('copy', 18)),
@@ -888,7 +875,7 @@ function setupHeads() {
 }
 
 /* ───────── العرض العام ───────── */
-const TABS = [['chats', 'محادثات', 'chat'], ['status', 'الحالات', 'status'], ['calls', 'المكالمات', 'phone'], ['radar', 'الرادار', 'radar'], ['settings', 'الإعدادات', 'gear']];
+const TABS = [['chats', 'محادثات', 'chat'], ['status', 'الحالات', 'status'], ['calls', 'المكالمات', 'phone'], ['settings', 'الإعدادات', 'gear']];
 function renderNav() {
   const un = unreadTotal(), missed = S.calls.filter(c => c.to === S.uid && c.state === 'missed' && c.ts > S.cfg.callsSeen).length, st = unseenSt();
   $('#nav').replaceChildren(...TABS.map(([k, t, i]) => h('button', { class: S.tab === k ? 'on' : '', onclick: () => { S.tab = k; render(true); } }, ico(i, 24), t, k === 'chats' && un ? h('span', { class: 'badge blue' }, un) : null, k === 'calls' && missed ? h('span', { class: 'badge' }, missed) : null, k === 'status' && st ? h('span', { class: 'dot' }) : null)));
@@ -899,7 +886,7 @@ function renderNow(force) {
   if (S.view !== 'app') return; renderNav();
   if (S.tab === 'settings' && !force) return;
   if (S.tab === 'chats' && $('#clist') && !force) return paintChatList();
-  const m = $('#main'), y = m.scrollTop; m.replaceChildren(({ chats: vChats, status: vStatus, calls: vCalls, radar: vRadar, settings: vSettings })[S.tab]()); m.scrollTop = y;
+  const m = $('#main'), y = m.scrollTop; m.replaceChildren(({ chats: vChats, status: vStatus, calls: vCalls, settings: vSettings })[S.tab]()); m.scrollTop = y;
 }
 
 if ('serviceWorker' in navigator && location.protocol.startsWith('http')) navigator.serviceWorker.register('sw.js').catch(() => {});
