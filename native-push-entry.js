@@ -33,6 +33,23 @@ export async function startNativePush() {
     started = false;
     return null;
   }
+  // Create the Android notification channel before registering for FCM.
+  // This channel ID must match the ID used by the Cloudflare FCM sender.
+  try {
+    await PushNotifications.createChannel({
+      id: 'kalimat_messages',
+      name: 'رسائل ومكالمات Kalimat',
+      description: 'تنبيهات الرسائل والمكالمات الواردة',
+      importance: 5,
+      visibility: 1,
+      sound: 'default',
+      vibration: true,
+      lights: true,
+      lightColor: '#2563ff'
+    });
+  } catch (error) {
+    console.warn('[Kalimat native push] notification channel setup failed', error);
+  }
   await PushNotifications.register();
   return true;
 }
