@@ -566,7 +566,7 @@ function paintMsgs() {
 function bubble(m, c) {
   const mine = m.from === S.uid, p = S.msgCache.get(m.id + (m.deleted ? 'd' : '')); let content;
   if (m.deleted) content = '🚫 تم حذف هذه الرسالة';
-  else if (!p) content = '🔒 تعذّر فك تشفير الرسالة (أُرسلت لمفتاح جهاز آخر)';
+  else if (!p) content = '🔒 رسالة غير متاحة على هذا الجهاز';
   else if (m.type === 'image') content = h('img', { class: 'pic', src: p.data, alt: 'صورة', onclick: () => viewImage(p.data) });
   else if (m.type === 'voice') content = h('audio', { controls: true, src: p.data, preload: 'metadata' });
   else if (m.type === 'file') content = h('a', { class: 'file', href: p.data, download: p.name || 'file' }, ico('file', 26), h('span', {}, p.name || 'ملف', h('br'), h('small', {}, Math.round((p.size || 0) / 1024) + ' ك.ب — اضغط للتنزيل')));
@@ -787,7 +787,6 @@ function vCalls() {
   S.cfg.callsSeen = Date.now(); try { localStorage.setItem('kmx-cfg', JSON.stringify(S.cfg)); } catch {}
   const list = [...S.calls].sort((a, b) => b.ts - a.ts).slice(0, 60);
   return h('div', {}, hdr('سجل المكالمات', 'صوتية ومرئية عبر WebRTC', h('button', { class: 'btn', onclick: callPicker }, ico('plus', 18), 'جديدة')),
-    h('div', { class: 'notice', style: { margin: '0 16px 8px' } }, ico('lock', 18), 'المكالمات مشفّرة أثناء النقل (DTLS-SRTP) وتتصل مباشرة بين الجهازين.'),
     list.length ? list.map(c => { const out = c.from === S.uid, peer = out ? c.to : c.from, missed = !out && c.state === 'missed', u = U(peer); watchUser(peer);
       return h('div', { class: 'row' }, avatar(u, 50), h('div', { class: 'mid' }, h('div', { class: 'nm', style: { color: missed ? 'var(--bad)' : '' } }, u.name), h('div', { class: 'pv' }, h('span', {}, (out ? '↗ ' : '↙ ') + (missed ? 'لم يُرد عليها' : c.state === 'declined' ? 'مرفوضة' : c.dur ? Math.floor(c.dur / 60) + ':' + String(c.dur % 60).padStart(2, '0') + ' د' : out ? 'صادرة' : 'واردة'), ' · ' + fmtT(c.ts) + ' ' + (sameDay(c.ts, Date.now()) ? 'اليوم' : fmtD(c.ts))))),
         h('button', { class: 'ib flat', onclick: () => startCall(peer, false) }, ico('phone', 20)), h('button', { class: 'ib flat', onclick: () => startCall(peer, true) }, ico('video', 20))); })
@@ -830,7 +829,7 @@ function vSettings() {
     h('div', { class: 'card' }, h('h3', {}, 'الخصوصية والأمان'),
       pv('rr', 'تأكيد القراءة (✓✓ الزرقاء)', 'إن أوقفتها لن ترى تأكيد قراءة الآخرين أيضاً'), pv('ty', 'مؤشر "يكتب الآن…"', null), pv('ls', 'آخر ظهور وحالة الاتصال', null), pv('dc', 'الظهور في نتائج البحث', 'يبقى بإمكان من يعرف رمزك العثور عليك'),
       sw('قفل التطبيق برقم سري', 'يُطلب الرقم عند فتح التطبيق بعد غيابه دقيقة', !!S.cfg.pin, async v => { if (!v) { S.cfg.pin = null; return reRender(); } const p = prompt('اختر رقماً سرياً من 4 أرقام أو أكثر'); if (!p || p.length < 4) { toast('رقم قصير'); return render(true); } S.cfg.pin = await sha(p); reRender(); }),
-      h('div', { class: 'notice' }, ico('lock', 18), 'المحادثات الفردية مشفّرة طرفاً لطرف (ECDH P-256 + AES-GCM). مفاتيحك تُحفظ على هذا الجهاز فقط؛ إن سجّلت من جهاز آخر لن تقرأ رسائلك القديمة.')),
+      h('div', { class: 'notice' }, ico('lock', 18), 'المحادثات الفردية مشفّرة طرفاً لطرف (ECDH P-256 + AES-GCM). مفاتيحك تُحفظ على هذا الجهاز فقط؛ إن سجّلت من جهاز آخر لن تقرأ رسائلك القديمة. المكالمات تستخدم تشفير النقل (DTLS-SRTP) عند الاتصال المباشر بين الجهازين.')),
     h('div', { class: 'card' }, h('h3', {}, 'الإشعارات والأصوات'),
       sw('أصوات التطبيق', null, S.cfg.sound, v => { S.cfg.sound = v; saveCfg(); }),
       sw('فقاعة المحادثات العائمة', 'تظهر عليها عدد الرسائل غير المقروءة', S.cfg.heads, v => { S.cfg.heads = v; saveCfg(); setupHeads(); }),
@@ -894,7 +893,7 @@ function renderNav() {
   const un = unreadTotal(), missed = S.calls.filter(c => c.to === S.uid && c.state === 'missed' && c.ts > S.cfg.callsSeen).length, st = unseenSt();
   $('#nav').replaceChildren(...TABS.map(([k, t, i]) => h('button', { class: S.tab === k ? 'on' : '', onclick: () => { S.tab = k; render(true); } }, ico(i, 24), t, k === 'chats' && un ? h('span', { class: 'badge blue' }, un) : null, k === 'calls' && missed ? h('span', { class: 'badge' }, missed) : null, k === 'status' && st ? h('span', { class: 'dot' }) : null)));
   const hb = $('#heads'); const show = S.cfg.heads && un > 0 && S.tab !== 'chats' && !S.chat; hb.style.display = show ? 'flex' : 'none'; const bd = hb.querySelector('.badge'); if (bd) { bd.hidden = !un; bd.textContent = un; }
-  document.title = (un ? `(${un}) ` : '') + 'كلمات';
+  document.title = (un ? `(${un}) ` : '') + 'Kalimat';
 }
 function renderNow(force) {
   if (S.view !== 'app') return; renderNav();
