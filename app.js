@@ -83,10 +83,10 @@ const S = {
   chats: new Map(), users: new Map(), watched: new Set(), calls: [], st: new Map(), stUnsubs: [], stKey: '',
   chat: null, msgs: [], msgCache: new Map(), pv: new Map(), lastUnread: new Map(), booted: false,
   reply: null, q: '', unsubs: [],
-  cfg: Object.assign({ theme: 'indigo', mode: 'dark', wp: 'dots', fontScale: 10, sound: true, heads: true, notif: false, callsSeen: 0, pin: null, pinnedChats: [], mutedChats: [] }, (() => { try { return JSON.parse(localStorage.getItem('kmx-cfg') || '{}'); } catch { return {}; } })()),
+  cfg: Object.assign({ theme: 'indigo', mode: 'dark', wp: 'dots', sound: true, heads: true, notif: false, callsSeen: 0, pin: null, pinnedChats: [], mutedChats: [] }, (() => { try { return JSON.parse(localStorage.getItem('kmx-cfg') || '{}'); } catch { return {}; } })()),
 };
 const saveCfg = () => { try { localStorage.setItem('kmx-cfg', JSON.stringify(S.cfg)); } catch {} applyCfg(); };
-function applyCfg() { const r = document.documentElement; r.dataset.theme = S.cfg.theme; r.dataset.mode = S.cfg.mode; const fs = Math.min(100, Math.max(10, Number(S.cfg.fontScale) || 10)); r.style.setProperty("--font-scale", String(1 + ((fs - 10) / 90) * 0.45)); $('meta[name=theme-color]').content = S.cfg.mode === 'light' ? '#f2f5fc' : '#0a1020'; }
+function applyCfg() { const r = document.documentElement; r.dataset.theme = S.cfg.theme; r.dataset.mode = S.cfg.mode; $('meta[name=theme-color]').content = S.cfg.mode === 'light' ? '#f2f5fc' : '#0a1020'; }
 applyCfg();
 const U = uid => S.users.get(uid) || { name: '…', _ph: true };
 let rq = 0; const render = (force) => { if (rq) return; rq = setTimeout(() => { rq = 0; renderNow(force); }, 40); };
@@ -822,7 +822,6 @@ function vSettings() {
       sw('فقاعة المحادثات العائمة', 'تظهر عليها عدد الرسائل غير المقروءة', S.cfg.heads, v => { S.cfg.heads = v; saveCfg(); setupHeads(); }),
       'Notification' in window ? sw('إشعارات المتصفح', 'تعمل والتطبيق مفتوح في الخلفية (بدون إشعارات دفع)', S.cfg.notif && Notification.permission === 'granted', async v => { if (v) { const r = await Notification.requestPermission(); S.cfg.notif = r === 'granted'; if (!S.cfg.notif) { toast('لم تُمنح الصلاحية'); render(true); } } else S.cfg.notif = false; saveCfg(); }) : null),
     h('div', { class: 'card' }, h('h3', {}, 'المظهر'),
-      h('div', { class: 'font-control' }, h('div', { class: 'font-scale-label' }, h('label', { for: 'km-font-scale', style: { color: 'var(--tx)', fontWeight: 700 } }, 'حجم الخط'), h('output', { id: 'km-font-scale-value', for: 'km-font-scale' }, String(Math.min(100, Math.max(10, Number(S.cfg.fontScale) || 10))))), h('input', { id: 'km-font-scale', type: 'range', min: '10', max: '100', step: '1', value: String(Math.min(100, Math.max(10, Number(S.cfg.fontScale) || 10))), 'aria-label': 'حجم الخط من 10 إلى 100', oninput: e => { const v = Math.min(100, Math.max(10, Number(e.target.value) || 10)); S.cfg.fontScale = v; document.documentElement.style.setProperty('--font-scale', String(1 + ((v - 10) / 90) * 0.45)); const o = $('#km-font-scale-value'); if (o) o.value = String(v); saveCfg(); } }), h('div', { class: 'font-scale-label' }, h('span', {}, '10 — الحجم الطبيعي'), h('span', {}, '100 — الأكبر'))),
       sw('الوضع الداكن', null, S.cfg.mode === 'dark', v => { S.cfg.mode = v ? 'dark' : 'light'; reRender(); }),
       h('div', { class: 'sw-themes' }, themes.map(([k, t, c]) => h('button', { class: S.cfg.theme === k ? 'on' : '', onclick: () => { S.cfg.theme = k; reRender(); } }, h('b', { style: { background: c } }), t))),
       h('div', { class: 'set', style: { flexDirection: 'column', alignItems: 'stretch' } },
