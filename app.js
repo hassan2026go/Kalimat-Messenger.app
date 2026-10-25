@@ -372,6 +372,23 @@ async function boot(user) {
   setupHeads(); lockCheck(true); render(true);
 }
 
+
+// Native Android push relay. The server derives recipients/content from Firestore.
+async function notifyNativePush(kind, id) {
+  if (!window.Capacitor?.isNativePlatform?.() || !auth.currentUser || !id) return;
+  try {
+    const idToken = await auth.currentUser.getIdToken();
+    const res = await fetch('https://kalimat-push.hassan2026go.workers.dev', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + idToken },
+      body: JSON.stringify(kind === 'message' ? { kind, chatId: id } : { kind, callId: id })
+    });
+    if (!res.ok) console.warn('[Kalimat native push] relay returned', res.status);
+  } catch (e) {
+    console.warn('[Kalimat native push] relay request failed', e);
+  }
+}
+
 /* ───────── المحادثات ───────── */
 function watchUser(uid) {
   if (S.watched.has(uid)) return; S.watched.add(uid);
@@ -634,7 +651,7 @@ async function sendMsg(kind, payload) {
     if (S.reply) msg.reply = S.reply; if (c.ttl) msg.exp = Date.now() + c.ttl * 1000; S.reply = null; paintReply();
     const last = { from: S.uid, ts: Date.now(), kind }; if (kind === 'text') last.body = await sealFor(c, JSON.stringify({ text: payload.text.slice(0, 80) }));
     const upd = { last, ['typing.' + S.uid]: 0 }; c.members.filter(x => x !== S.uid).forEach(o => upd['unread.' + o] = increment(1));
-    await addDoc(collection(db, 'mx_chats', c.id, 'msgs'), msg); await updateDoc(doc(db, 'mx_chats', c.id), upd); beep([660], .08);
+    await addDoc(collection(db, 'mx_chats', c.id, 'msgs'), msg); await updateDoc(doc(db, 'mx_chats', c.id), upd); void notifyNativePush('message', c.id); beep([660], .08);
   } catch (e) { toast(e.message === 'no-key' ? 'هذا المستخدم لم يفتح كلمات بعد، لا يمكن تشفير الرسالة له' : 'تعذّر الإرسال: ' + (e.code || e.message)); }
 }
 
@@ -738,7 +755,7 @@ async function startCall(peer, video) {
   const pc = CALL.pc = newPC(stream, ref, 'caller');
   try {
     const offer = await pc.createOffer(); await pc.setLocalDescription(offer);
-    await setDoc(ref, { from: S.uid, to: peer, parts: [S.uid, peer], type: video ? 'video' : 'audio', state: 'ringing', offer: { type: offer.type, sdp: offer.sdp }, ts: Date.now() });
+    await setDoc(ref, { from: S.uid, to: peer, parts: [S.uid, peer], type: video ? 'video' : 'audio', state: 'ringing', offer: { type: offer.type, sdp: offer.sdp }, ts: Date.now() }); void notifyNativePush('call', ref.id);
   } catch (e) { toast('تعذّر بدء المكالمة'); return endCall(false); }
   CALL.unsubs.push(onSnapshot(ref, async s => { const d = s.data(); if (!d || !CALL) return;
     if (d.answer && !pc.currentRemoteDescription) { await pc.setRemoteDescription(d.answer); pc.flush(); }
