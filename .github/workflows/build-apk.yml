@@ -39,8 +39,12 @@ jobs:
           test -s icon-maskable-512.png
           test -s icon.svg
           test -s scripts/generate-icons.mjs
+          test -s native-push-entry.js
+          test -s cloudflare/kalimat-push-worker.js
           node -e "JSON.parse(require('fs').readFileSync('manifest.json', 'utf8'))"
           node --input-type=module --check < app.js
+          node --input-type=module --check < native-push-entry.js
+          node --input-type=module --check < cloudflare/kalimat-push-worker.js
           node --check sw.js
           node --test tests/*.test.mjs
           node -e "
