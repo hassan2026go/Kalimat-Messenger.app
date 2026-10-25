@@ -213,6 +213,23 @@ nav button.on .ico{filter:drop-shadow(0 0 7px color-mix(in srgb,var(--acc) 65%,t
 @media(min-width:600px){.auth{max-width:460px}.row{margin-inline:12px}}
 @media(prefers-reduced-motion:reduce){*,*::before,*::after{animation-duration:.01ms!important;animation-iteration-count:1!important;scroll-behavior:auto!important;transition-duration:.01ms!important}}
 
+/* Kalimat compact typography: calm, readable, never billboard-sized */
+html,body{font-size:calc(16px * var(--font-scale,1))}
+.hd h1{font-size:21px}
+.auth h1{font-size:25px}
+nav button{font-size:11.5px;gap:4px}
+.row .nm{font-size:14px}
+.row .pv{font-size:12.5px}
+.btn{font-size:14px;padding:10px 15px}
+.card h3{font-size:14px}
+.set .t b{font-size:14px}
+.set .t small,.field label,.notice{font-size:12px}
+.sw-themes button{font-size:12.5px;padding:8px 11px}
+.font-control{display:flex;flex-direction:column;gap:8px;padding:4px 0 8px}
+.font-control input[type=range]{padding:0;accent-color:var(--acc);min-height:24px}
+.font-control .font-scale-label{font-size:12px}
+.font-control output{font-size:14px}
+@media(max-width:380px){.hd h1{font-size:19px}.ib{width:38px;height:38px}.row{gap:9px;padding:10px 12px}}
 </style>
 </head>
 <body>
